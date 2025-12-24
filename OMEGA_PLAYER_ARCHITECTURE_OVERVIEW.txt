@@ -1,0 +1,976 @@
+================================================================================
+OMEGA PLAYER SYSTEM - ARCHITECTURE OVERVIEW & IMPLEMENTATION GUIDE
+================================================================================
+
+This document provides a comprehensive overview of how the Omega Player system
+is structured, how it works, and how to replicate its setup for new players
+with wavelength/waveform UI and playback functionality.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+1. SYSTEM ARCHITECTURE OVERVIEW
+2. COMPONENT STRUCTURE
+3. FILE STRUCTURE & ORGANIZATION
+4. UI COMPONENTS & STYLING
+5. PLAYBACK MECHANISM
+6. STATE MANAGEMENT
+7. INTEGRATION POINTS
+8. MUSIC SOURCES (YouTube Video IDs)
+9. IMPLEMENTATION CHECKLIST FOR NEW PLAYERS
+
+================================================================================
+1. SYSTEM ARCHITECTURE OVERVIEW
+================================================================================
+
+The Omega Player system is a modular music player architecture that:
+
+- Uses YouTube iframe API for audio playback (hidden iframes)
+- Displays animated waveform visualizations synchronized with playback
+- Provides panel-based UI that integrates into the Dashboard Stats Panel
+- Supports multiple concurrent players (only one active at a time)
+- Uses custom event system for inter-component communication
+- Includes mini waveform displays in SystemOverview for quick access
+
+KEY DESIGN PATTERNS:
+- Component-based architecture (React/TypeScript)
+- Event-driven state management (CustomEvents)
+- CSS Modules for styling isolation
+- Dynamic imports for code splitting
+- Hook-based state management (custom hooks)
+
+================================================================================
+2. COMPONENT STRUCTURE
+================================================================================
+
+Each Omega Player consists of the following components:
+
+A. PLAYER PANEL COMPONENT (e.g., LoFiPlayerPanel.tsx)
+   - Main React component that renders the player UI
+   - Manages playback state (isPlaying, volume, isMuted)
+   - Creates and controls hidden YouTube iframe
+   - Handles waveform animation
+   - Listens to custom events for external control
+
+B. CUSTOM HOOK (e.g., useLoFiPlayer.ts)
+   - Manages panel visibility state (isPanelOpen)
+   - Listens for open/close events
+   - Ensures only one player is open at a time
+   - Exposes openPanel/closePanel methods
+
+C. CSS MODULE (e.g., LoFiPlayerPanel.module.css)
+   - All styling for the player panel
+   - Waveform animation keyframes
+   - Responsive design rules
+   - Theme-aware color variables
+
+D. MINI WAVEFORM (in SystemOverview.tsx)
+   - Compact waveform display for quick access buttons
+   - Shows playing state visually
+   - 12 bars, smaller than main waveform
+
+================================================================================
+3. FILE STRUCTURE & ORGANIZATION
+================================================================================
+
+CORE PLAYER FILES (per player type):
+------------------------------------
+src/components/Media/
+  ├── [PlayerName]PlayerPanel.tsx          # Main component
+  ├── [PlayerName]PlayerPanel.module.css   # Styles
+  └── (referenced by)
+      └── src/hooks/
+          └── use[PlayerName]Player.ts     # State hook
+
+INTEGRATION FILES:
+------------------
+src/components/Dashboard/
+  ├── DashboardStatsPanel.tsx              # Where panels render
+  ├── SystemOverview.tsx                   # Quick access buttons
+  └── SystemOverview.module.css            # Mini waveform styles
+
+EXAMPLE FILE PATHS:
+-------------------
+- src/components/Media/LoFiPlayerPanel.tsx
+- src/components/Media/LoFiPlayerPanel.module.css
+- src/hooks/useLoFiPlayer.ts
+- src/components/Dashboard/DashboardStatsPanel.tsx (renders panels)
+- src/components/Dashboard/SystemOverview.tsx (has quick access)
+
+CURRENT PLAYERS IN SYSTEM:
+--------------------------
+1. BluesPlayerPanel      → useBluesPlayer
+2. LoFiPlayerPanel       → useLoFiPlayer
+3. TechPlayerPanel       → useTechPlayer
+4. FunkyPlayerPanel      → useFunkyPlayer
+5. OmegaTrancePlayerPanel → useOmegaTrancePlayer
+6. OmegaMelodiesPlayerPanel → useOmegaMelodiesPlayer
+
+================================================================================
+4. UI COMPONENTS & STYLING
+================================================================================
+
+A. MAIN PLAYER PANEL STRUCTURE:
+-------------------------------
+┌─────────────────────────────────┐
+│ Header                          │
+│ ├── Logo/Icon                   │
+│ ├── Title                       │
+│ └── Close Button (✕)            │
+├─────────────────────────────────┤
+│ Content                         │
+│ ├── Track Info                  │
+│ │   ├── Track Title             │
+│ │   └── Track Artist            │
+│ ├── Waveform Container          │
+│ │   └── Waveform (20 bars)      │
+│ └── Controls                    │
+│     └── Play/Pause Button       │
+└─────────────────────────────────┘
+
+B. CSS MODULE KEY CLASSES:
+--------------------------
+.panel                    - Main container
+.header                   - Top section with title
+.headerLeft               - Logo + title container
+.title                    - Player title (uppercase, primary color)
+.closeButton              - Close button
+.content                  - Scrollable content area
+.trackInfo                - Track metadata container
+.trackTitle               - Song/playlist title
+.trackArtist              - Artist/playlist name
+.waveformContainer        - Waveform wrapper with gradient bg
+.waveform                 - Flex container for bars
+.waveBar                  - Individual waveform bar
+.waveformPlaying          - Class added when playing (faster animation)
+.controls                 - Control button container
+.btn                      - Base button style
+.playPause                - Play/pause button (circular, primary color)
+
+C. WAVEFORM ANIMATION:
+---------------------
+- 20 bars total (main waveform)
+- 12 bars (mini waveform in SystemOverview)
+- Random initial heights (20-80px for main, 4-12px for mini)
+- Staggered animation delays (0.1s increments per bar)
+- Two animation states:
+  * waveIdle: Slow pulse (2s cycle) when paused
+  * wavePlaying: Fast animation (0.8s cycle) when playing
+
+KEYFRAME ANIMATIONS:
+--------------------
+@keyframes waveIdle:
+  - scaleY: 0.6 → 1 → 0.6
+  - opacity: 0.7 → 1 → 0.7
+  - Duration: 2s, ease-in-out, infinite
+
+@keyframes wavePlaying:
+  - scaleY: 0.8 → 1.2 → 0.9 → 1.1 → 0.8
+  - opacity: 0.8 → 1 → 0.9 → 1 → 0.8
+  - Duration: 0.8s, ease-in-out, infinite
+  - Additional delays on odd/even/3n/5n bars for variety
+
+D. STYLING CHARACTERISTICS:
+---------------------------
+- Theme-aware using CSS variables:
+  * var(--palette-primary, #00d4ff)
+  * var(--palette-text, #ffffff)
+  * var(--palette-border, ...)
+  * var(--palette-surface, ...)
+- Gradient backgrounds
+- Backdrop blur effects
+- Smooth transitions (0.2s-0.3s ease)
+- Responsive breakpoints (@media max-width: 768px)
+- Glassmorphism design (semi-transparent with blur)
+
+================================================================================
+5. PLAYBACK MECHANISM
+================================================================================
+
+A. YOUTUBE IFRAME INTEGRATION:
+------------------------------
+
+Each player creates a hidden iframe in the DOM:
+- Position: absolute
+- Size: 0x0 (invisible)
+- Opacity: 0
+- Pointer events: none
+- ID: "[player-name]-audio-iframe"
+
+IFRAME CONFIGURATION:
+---------------------
+URL Pattern:
+https://www.youtube.com/embed/{VIDEO_ID}?autoplay=0&controls=0&showinfo=0&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&fs=0&cc_load_policy=0&playsinline=1
+
+Parameters Explained:
+- autoplay=0: Don't autoplay (controlled programmatically)
+- controls=0: Hide YouTube controls
+- showinfo=0: Hide video info
+- rel=0: Don't show related videos
+- modestbranding=1: Minimal YouTube branding
+- enablejsapi=1: Enable JavaScript API for control
+- iv_load_policy=3: Disable annotations
+- fs=0: Disable fullscreen
+- cc_load_policy=0: Disable captions
+- playsinline=1: Play inline on mobile
+
+B. PLAYBACK CONTROL:
+-------------------
+
+Play Command:
+iframe.contentWindow.postMessage(
+  '{"event":"command","func":"playVideo","args":""}',
+  "*"
+);
+
+Pause Command:
+iframe.contentWindow.postMessage(
+  '{"event":"command","func":"pauseVideo","args":""}',
+  "*"
+);
+
+C. IFRAME LIFECYCLE:
+-------------------
+1. Created in useEffect on component mount
+2. Appended to document.body
+3. Stored in useRef for access
+4. Removed from DOM on component unmount (cleanup)
+
+================================================================================
+6. STATE MANAGEMENT
+================================================================================
+
+A. PLAYER STATE (in Panel Component):
+------------------------------------
+interface PlayerState {
+  isPlaying: boolean;    // Playback state
+  volume: number;        // Volume level (0-1)
+  isMuted: boolean;      // Mute state
+}
+
+B. PANEL STATE (in Custom Hook):
+-------------------------------
+interface HookState {
+  isPanelOpen: boolean;  // Panel visibility
+}
+
+C. CUSTOM EVENT SYSTEM:
+----------------------
+
+Event Naming Convention:
+- omega:[playerName]PlayerControl  → Control actions (toggle, pause, volume)
+- omega:open[PlayerName]Player     → Open panel
+- omega:close[PlayerName]Player    → Close panel
+
+Event Structure:
+CustomEvent {
+  detail: {
+    action: "toggle" | "pause" | "volume",
+    value?: number  // For volume (0-100)
+  }
+}
+
+Event Flow:
+1. User clicks quick access button in SystemOverview
+2. Dispatches omega:open[PlayerName]Player event
+3. Hook listener sets isPanelOpen = true
+4. Panel component mounts and auto-plays
+5. Panel can dispatch omega:[playerName]PlayerControl for external control
+6. On close, dispatches omega:close[PlayerName]Player
+
+D. EXCLUSIVE PLAYER LOGIC:
+-------------------------
+When one player opens, it closes all others:
+- Hook listens for other players' "open" events
+- On open, dispatches "close" events for all other players
+- Ensures only one player panel is visible at a time
+
+================================================================================
+7. INTEGRATION POINTS
+================================================================================
+
+A. DASHBOARD STATS PANEL INTEGRATION:
+------------------------------------
+
+File: src/components/Dashboard/DashboardStatsPanel.tsx
+
+Dynamic Import Pattern:
+```typescript
+const LoFiPlayerPanel = dynamic(
+  () => import("@/components/Media/LoFiPlayerPanel").then(
+    (mod) => ({ default: mod.LoFiPlayerPanel })
+  ),
+  { ssr: false }
+);
+```
+
+Rendering Pattern:
+```typescript
+{lofiPlayer.playerState.isPanelOpen && (
+  <section className={`${styles.section} ${styles.mediaSection}`}>
+    <div className={styles.mediaPanelWrapper}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <LoFiPlayerPanel />
+      </Suspense>
+    </div>
+  </section>
+)}
+```
+
+B. SYSTEM OVERVIEW INTEGRATION:
+------------------------------
+
+File: src/components/Dashboard/SystemOverview.tsx
+
+1. Import hooks:
+```typescript
+const lofiPlayer = useLoFiPlayer();
+```
+
+2. Track playing state:
+```typescript
+const [playerStates, setPlayerStates] = useState({
+  lofi: false,
+  // ... other players
+});
+```
+
+3. Initialize hidden iframes for quick access:
+```typescript
+const playerConfigs = {
+  lofi: { videoId: "4xDzrJKXOOY" },
+  // ... other players
+};
+```
+
+4. Create MiniWaveform component:
+```typescript
+function MiniWaveform({ isPlaying }: { isPlaying: boolean }) {
+  // 12 bars, smaller animation
+}
+```
+
+5. Render quick access buttons:
+```typescript
+<button onClick={() => handleOmegaPlayerClick("lofi")}>
+  <MiniWaveform isPlaying={playerStates.lofi} />
+  <span>Lo-Fi</span>
+</button>
+```
+
+6. Handle click to toggle panel/open player:
+```typescript
+const handleOmegaPlayerClick = (playerType: string) => {
+  // Toggle panel or control playback
+  window.dispatchEvent(
+    new CustomEvent(`omega:open${capitalize(playerType)}Player`)
+  );
+};
+```
+
+C. MOBILE INTEGRATION:
+--------------------
+
+Files:
+- src/components/Mobile/MobileInlinePanel.tsx
+- src/components/Mobile/MobileStatsPanel.tsx
+
+Similar dynamic import and rendering pattern, but with mobile-specific handling.
+
+================================================================================
+8. MUSIC SOURCES (YouTube Video IDs)
+================================================================================
+
+CURRENT PLAYLISTS/SOURCES:
+--------------------------
+
+1. BLUES PLAYER:
+   Video ID: 4DxKNOUzvJU
+   URL: https://www.youtube.com/watch?v=4DxKNOUzvJU
+   Config: { VIDEO_ID: "4DxKNOUzvJU" }
+
+2. LO-FI PLAYER:
+   Video ID: 4xDzrJKXOOY
+   URL: https://www.youtube.com/watch?v=4xDzrJKXOOY
+   Config: { VIDEO_ID: "4xDzrJKXOOY" }
+
+3. TECH PLAYER:
+   Video ID: -WEWVsC8CyA
+   URL: https://www.youtube.com/watch?v=-WEWVsC8CyA
+   Config: { VIDEO_ID: "-WEWVsC8CyA" }
+
+4. FUNKY PLAYER:
+   Video ID: 7XPGU7dmZXg
+   URL: https://www.youtube.com/watch?v=7XPGU7dmZXg
+   Config: { VIDEO_ID: "7XPGU7dmZXg" }
+
+5. TRANCE PLAYER:
+   Video ID: T2QZpy07j4s
+   Playlist: RDT2QZpy07j4s
+   URL: https://www.youtube.com/watch?v=T2QZpy07j4s&list=RDT2QZpy07j4s
+   Config: { 
+     VIDEO_ID: "T2QZpy07j4s",
+     VIDEO_URL: "https://www.youtube.com/watch?v=T2QZpy07j4s&list=RDT2QZpy07j4s&start_radio=1"
+   }
+   Iframe URL includes: &list=RDT2QZpy07j4s
+
+6. MELODIES PLAYER:
+   Video ID: nxqlTRYs6NY
+   URL: https://www.youtube.com/watch?v=nxqlTRYs6NY
+   Config: { VIDEO_ID: "nxqlTRYs6NY" }
+
+HOW TO GET YOUTUBE VIDEO/PLAYLIST ID:
+-------------------------------------
+1. Find YouTube video or playlist
+2. Copy URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)
+3. Extract VIDEO_ID from URL parameter `v=`
+4. For playlists, URL format: ...&list=PLAYLIST_ID
+5. Use playlist ID in iframe URL with &list=PLAYLIST_ID parameter
+
+================================================================================
+9. IMPLEMENTATION CHECKLIST FOR NEW PLAYERS
+================================================================================
+
+To create a new Omega Player with wavelength UI and playback:
+
+STEP 1: CREATE PLAYER PANEL COMPONENT
+--------------------------------------
+✓ Create: src/components/Media/[PlayerName]PlayerPanel.tsx
+
+Required Structure:
+- Import React hooks (useState, useEffect, useRef)
+- Import CSS module
+- Define CONFIG with VIDEO_ID (and VIDEO_URL)
+- Define PlayerState interface
+- Export PlayerPanel function component
+
+Required Functions:
+- initializeWaveform() - Set initial bar heights
+- playViaIframe() - Send play command
+- pauseViaIframe() - Send pause command
+- handlePlay() - Play + start animation
+- handlePause() - Pause + stop animation
+- handleTogglePlayPause() - Toggle logic
+- startWaveformAnimation() - Add playing class
+- stopWaveformAnimation() - Remove playing class
+- handleClose() - Close panel + dispatch event
+
+Required useEffect:
+- Create hidden iframe on mount
+- Initialize waveform
+- Auto-play after 500ms delay
+- Listen for control events (omega:[name]PlayerControl)
+- Listen for close events (omega:close[Name]Player)
+- Cleanup on unmount (remove iframe, event listeners)
+
+Required JSX:
+- Panel container (.panel)
+- Header with logo, title, close button
+- Content area with:
+  - Track info (title + artist)
+  - Waveform container (20 bars)
+  - Controls (play/pause button)
+
+STEP 2: CREATE CSS MODULE
+--------------------------
+✓ Create: src/components/Media/[PlayerName]PlayerPanel.module.css
+
+Copy structure from existing player CSS (e.g., LoFiPlayerPanel.module.css):
+
+Required Sections:
+- Panel Container (.panel) - Main styling
+- Header (.header, .headerLeft, .title, .logo, .closeButton)
+- Content (.content)
+- Track Info (.trackInfo, .trackTitle, .trackArtist)
+- Waveform (.waveformContainer, .waveform, .waveBar)
+- Waveform Animations (@keyframes waveIdle, @keyframes wavePlaying)
+- Controls (.controls, .controlButtons, .btn, .playPause)
+- Responsive (@media queries)
+
+Key Styles:
+- Use CSS variables for theme colors
+- Gradient backgrounds
+- Backdrop blur
+- Smooth transitions
+- Waveform animations (waveIdle for paused, wavePlaying for playing)
+
+STEP 3: CREATE CUSTOM HOOK
+---------------------------
+✓ Create: src/hooks/use[PlayerName]Player.ts
+
+Required Structure:
+- Import React hooks (useState, useEffect, useCallback)
+- Define HookState interface (isPanelOpen: boolean)
+- Export use[PlayerName]Player function
+
+Required Logic:
+- State: isPanelOpen (initial: false)
+- Listen for open event (omega:open[Name]Player)
+- On open: Close all other players + set isPanelOpen = true
+- Listen for close event (omega:close[Name]Player)
+- On close: set isPanelOpen = false
+- Listen for other players opening (close this one)
+- Return: { playerState, openPanel, closePanel }
+
+STEP 4: INTEGRATE INTO DASHBOARD STATS PANEL
+---------------------------------------------
+✓ Edit: src/components/Dashboard/DashboardStatsPanel.tsx
+
+Required Changes:
+1. Add dynamic import:
+```typescript
+const [PlayerName]PlayerPanel = dynamic(
+  () => import("@/components/Media/[PlayerName]PlayerPanel").then(
+    (mod) => ({ default: mod.[PlayerName]PlayerPanel })
+  ),
+  { ssr: false }
+);
+```
+
+2. Import hook:
+```typescript
+const [playerName]Player = use[PlayerName]Player();
+```
+
+3. Add rendering section:
+```typescript
+{[playerName]Player.playerState.isPanelOpen && (
+  <section className={`${styles.section} ${styles.mediaSection}`}>
+    <div className={styles.mediaPanelWrapper}>
+      <Suspense fallback={<div>Loading [PlayerName] Player...</div>}>
+        <[PlayerName]PlayerPanel />
+      </Suspense>
+    </div>
+  </section>
+)}
+```
+
+STEP 5: INTEGRATE INTO SYSTEM OVERVIEW (QUICK ACCESS)
+------------------------------------------------------
+✓ Edit: src/components/Dashboard/SystemOverview.tsx
+
+Required Changes:
+1. Import hook:
+```typescript
+const [playerName]Player = use[PlayerName]Player();
+```
+
+2. Add to playerStates:
+```typescript
+const [playerStates, setPlayerStates] = useState({
+  // ... existing
+  [playerName]: false,
+});
+```
+
+3. Add to playerConfigs:
+```typescript
+const playerConfigs = {
+  // ... existing
+  [playerName]: { videoId: "YOUR_VIDEO_ID" },
+};
+```
+
+4. Add iframe initialization (in useEffect that creates iframes)
+
+5. Add event listeners for control/close events
+
+6. Add quick access button in omegaPlayersGrid:
+```typescript
+<button
+  className={styles.omegaPlayerButton}
+  onClick={() => handleOmegaPlayerClick("[playerName]")}
+  type="button"
+  title="[Player Name] Player - Click to play/pause"
+>
+  <MiniWaveform isPlaying={playerStates.[playerName]} />
+  <span className={styles.omegaPlayerLabel}>[Player Name]</span>
+</button>
+```
+
+STEP 6: UPDATE MOBILE INTEGRATION (OPTIONAL)
+--------------------------------------------
+✓ Edit: src/components/Mobile/MobileInlinePanel.tsx
+✓ Edit: src/components/Mobile/MobileStatsPanel.tsx
+
+Similar pattern as DashboardStatsPanel (dynamic import, hook, rendering).
+
+STEP 7: NAMING CONVENTIONS CHECKLIST
+-------------------------------------
+✓ Component name: [PlayerName]PlayerPanel
+✓ Hook name: use[PlayerName]Player
+✓ CSS module: [PlayerName]PlayerPanel.module.css
+✓ Event names:
+  - omega:open[PlayerName]Player
+  - omega:close[PlayerName]Player
+  - omega:[playerName]PlayerControl
+✓ Iframe ID: "[playerName]-audio-iframe"
+✓ Waveform ID: "[playerName]-waveform"
+
+STEP 8: TESTING CHECKLIST
+--------------------------
+✓ Panel opens when quick access button clicked
+✓ Panel auto-plays after opening
+✓ Waveform animates when playing
+✓ Play/pause button toggles correctly
+✓ Close button closes panel and pauses playback
+✓ Opening one player closes others
+✓ Mini waveform in SystemOverview shows playing state
+✓ Quick access button controls playback state
+✓ Iframe created and cleaned up properly
+✓ No console errors
+✓ Responsive on mobile (if mobile integration added)
+
+================================================================================
+KEY IMPLEMENTATION DETAILS
+================================================================================
+
+WAVEFORM IMPLEMENTATION:
+------------------------
+- Main waveform: 20 bars, 80px height container
+- Bar width: 4px, gap: 3px
+- Random heights: 20-80px
+- Animation delays: index * 0.1s
+- Idle: waveIdle animation (2s cycle)
+- Playing: wavePlaying animation (0.8s cycle)
+- Class toggling: Add/remove .waveformPlaying class
+
+IFRAME SETUP:
+-------------
+- Created dynamically in useEffect
+- Hidden (0x0, opacity 0, pointer-events none)
+- Appended to document.body
+- Stored in useRef
+- ID pattern: "[name]-audio-iframe"
+- YouTube embed URL with enablejsapi=1
+- Cleanup: Remove from DOM on unmount
+
+EVENT SYSTEM:
+-------------
+- Custom events dispatched via window.dispatchEvent
+- Event names follow pattern: omega:[action][Name]Player
+- Listeners added in useEffect
+- Cleanup: Remove listeners in useEffect return
+
+STATE SYNC:
+-----------
+- Panel component manages playback state
+- Hook manages panel visibility
+- SystemOverview tracks playing state for mini waveforms
+- Events keep everything in sync
+
+================================================================================
+FILE TEMPLATES
+================================================================================
+
+MINIMAL PLAYER PANEL TEMPLATE:
+-------------------------------
+```
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import styles from "./[PlayerName]PlayerPanel.module.css";
+
+const [PLAYER]_CONFIG = {
+  VIDEO_ID: "YOUR_VIDEO_ID",
+  VIDEO_URL: "https://www.youtube.com/watch?v=YOUR_VIDEO_ID",
+};
+
+interface [PlayerName]PlayerState {
+  isPlaying: boolean;
+  volume: number;
+  isMuted: boolean;
+}
+
+export function [PlayerName]PlayerPanel() {
+  const [playerState, setPlayerState] = useState<[PlayerName]PlayerState>({
+    isPlaying: false,
+    volume: 0.7,
+    isMuted: false,
+  });
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const waveformRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // Initialize iframe
+    const iframe = document.createElement("iframe");
+    iframe.id = "[playerName]-audio-iframe";
+    iframe.src = `https://www.youtube.com/embed/${[PLAYER]_CONFIG.VIDEO_ID}?autoplay=0&controls=0&showinfo=0&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&fs=0&cc_load_policy=0&playsinline=1`;
+    iframe.style.cssText = "position:absolute;width:0;height:0;border:none;opacity:0;pointer-events:none;";
+    iframe.allow = "autoplay; encrypted-media";
+    iframe.setAttribute("allowfullscreen", "");
+    document.body.appendChild(iframe);
+    iframeRef.current = iframe;
+
+    initializeWaveform();
+    
+    const autoPlayTimer = setTimeout(() => {
+      handlePlay();
+    }, 500);
+
+    const handleControl = (e: CustomEvent) => {
+      const { action } = e.detail;
+      if (action === "toggle") {
+        handleTogglePlayPause();
+      } else if (action === "pause") {
+        handlePause();
+      }
+    };
+
+    const handleCloseEvent = () => {
+      handlePause();
+    };
+
+    window.addEventListener("omega:[playerName]PlayerControl", handleControl as EventListener);
+    window.addEventListener("omega:close[PlayerName]Player", handleCloseEvent);
+
+    return () => {
+      clearTimeout(autoPlayTimer);
+      window.removeEventListener("omega:[playerName]PlayerControl", handleControl as EventListener);
+      window.removeEventListener("omega:close[PlayerName]Player", handleCloseEvent);
+      if (iframeRef.current && iframeRef.current.parentNode) {
+        iframeRef.current.parentNode.removeChild(iframeRef.current);
+      }
+    };
+  }, []);
+
+  const initializeWaveform = () => {
+    if (!waveformRef.current) return;
+    const waveBars = waveformRef.current.querySelectorAll(`.${styles.waveBar}`);
+    waveBars.forEach((bar, index) => {
+      const height = Math.random() * 60 + 20;
+      (bar as HTMLElement).style.height = `${height}px`;
+      (bar as HTMLElement).style.animationDelay = `${index * 0.1}s`;
+    });
+  };
+
+  const playViaIframe = () => {
+    const iframe = iframeRef.current;
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          '{"event":"command","func":"playVideo","args":""}',
+          "*"
+        );
+      } catch (e) {
+        console.warn("Iframe play command failed:", e);
+      }
+    }
+  };
+
+  const pauseViaIframe = () => {
+    const iframe = iframeRef.current;
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          '{"event":"command","func":"pauseVideo","args":""}',
+          "*"
+        );
+      } catch (e) {
+        console.warn("Iframe pause command failed:", e);
+      }
+    }
+  };
+
+  const handlePlay = () => {
+    playViaIframe();
+    setPlayerState((prev) => ({ ...prev, isPlaying: true }));
+    startWaveformAnimation();
+  };
+
+  const handlePause = () => {
+    pauseViaIframe();
+    setPlayerState((prev) => ({ ...prev, isPlaying: false }));
+    stopWaveformAnimation();
+  };
+
+  const handleTogglePlayPause = () => {
+    if (playerState.isPlaying) {
+      handlePause();
+    } else {
+      handlePlay();
+    }
+  };
+
+  const startWaveformAnimation = () => {
+    if (waveformRef.current) {
+      waveformRef.current.classList.add(styles.waveformPlaying);
+    }
+  };
+
+  const stopWaveformAnimation = () => {
+    if (waveformRef.current) {
+      waveformRef.current.classList.remove(styles.waveformPlaying);
+    }
+  };
+
+  const handleClose = () => {
+    handlePause();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("omega:close[PlayerName]Player", { detail: {} })
+      );
+    }
+  };
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.logo}>🎵</span>
+          <h2 className={styles.title}>[Player Name]</h2>
+        </div>
+        <button
+          className={styles.closeButton}
+          onClick={handleClose}
+          aria-label="Close [Player Name] player"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className={styles.content}>
+        <div className={styles.trackInfo}>
+          <div className={styles.trackTitle}>[Playlist Title]</div>
+          <div className={styles.trackArtist}>[Playlist Name]</div>
+        </div>
+
+        <div className={styles.waveformContainer}>
+          <div
+            ref={waveformRef}
+            className={styles.waveform}
+            id="[playerName]-waveform"
+          >
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div key={i} className={styles.waveBar} />
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.controls}>
+          <div className={styles.controlButtons}>
+            <button
+              className={`${styles.btn} ${styles.playPause}`}
+              onClick={handleTogglePlayPause}
+              aria-label={playerState.isPlaying ? "Pause" : "Play"}
+            >
+              {playerState.isPlaying ? (
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                  <path d="M6,4H10V20H6V4M14,4H18V20H14V4Z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                  <path d="M8,5.14V19.14L19,12.14L8,5.14Z" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+MINIMAL HOOK TEMPLATE:
+----------------------
+```
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+
+interface [PlayerName]PlayerState {
+  isPanelOpen: boolean;
+}
+
+export function use[PlayerName]Player() {
+  const [playerState, setPlayerState] = useState<[PlayerName]PlayerState>({
+    isPanelOpen: false,
+  });
+
+  useEffect(() => {
+    const handleOpen = (e: CustomEvent) => {
+      // Close all other players
+      window.dispatchEvent(new CustomEvent("omega:closeBluesPlayer"));
+      window.dispatchEvent(new CustomEvent("omega:closeLoFiPlayer"));
+      window.dispatchEvent(new CustomEvent("omega:closeTechPlayer"));
+      window.dispatchEvent(new CustomEvent("omega:closeFunkyPlayer"));
+      window.dispatchEvent(new CustomEvent("omega:closeOmegaTrancePlayer"));
+      window.dispatchEvent(new CustomEvent("omega:closeOmegaMelodiesPlayer"));
+      setPlayerState({ isPanelOpen: true });
+    };
+
+    const handleClose = () => {
+      setPlayerState({ isPanelOpen: false });
+    };
+
+    const handleOtherPlayerOpen = () => {
+      setPlayerState({ isPanelOpen: false });
+    };
+
+    window.addEventListener("omega:open[PlayerName]Player", handleOpen as EventListener);
+    window.addEventListener("omega:close[PlayerName]Player", handleClose);
+    window.addEventListener("omega:openBluesPlayer", handleOtherPlayerOpen);
+    window.addEventListener("omega:openLoFiPlayer", handleOtherPlayerOpen);
+    window.addEventListener("omega:openTechPlayer", handleOtherPlayerOpen);
+    window.addEventListener("omega:openFunkyPlayer", handleOtherPlayerOpen);
+    window.addEventListener("omega:openOmegaTrancePlayer", handleOtherPlayerOpen);
+    window.addEventListener("omega:openOmegaMelodiesPlayer", handleOtherPlayerOpen);
+
+    return () => {
+      window.removeEventListener("omega:open[PlayerName]Player", handleOpen as EventListener);
+      window.removeEventListener("omega:close[PlayerName]Player", handleClose);
+      window.removeEventListener("omega:openBluesPlayer", handleOtherPlayerOpen);
+      window.removeEventListener("omega:openLoFiPlayer", handleOtherPlayerOpen);
+      window.addEventListener("omega:openTechPlayer", handleOtherPlayerOpen);
+      window.removeEventListener("omega:openFunkyPlayer", handleOtherPlayerOpen);
+      window.removeEventListener("omega:openOmegaTrancePlayer", handleOtherPlayerOpen);
+      window.removeEventListener("omega:openOmegaMelodiesPlayer", handleOtherPlayerOpen);
+    };
+  }, []);
+
+  const openPanel = useCallback(() => {
+    setPlayerState({ isPanelOpen: true });
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setPlayerState({ isPanelOpen: false });
+  }, []);
+
+  return {
+    playerState,
+    openPanel,
+    closePanel,
+  };
+}
+```
+
+================================================================================
+SUMMARY
+================================================================================
+
+The Omega Player system is a well-structured, modular architecture that:
+
+1. Uses YouTube iframes for audio playback (hidden, controlled via postMessage)
+2. Provides beautiful waveform visualizations with CSS animations
+3. Integrates seamlessly into the dashboard via panels
+4. Supports multiple players with exclusive access (one at a time)
+5. Uses custom events for clean component communication
+6. Includes quick access buttons with mini waveforms
+
+To create a new player:
+- Copy template files (Panel, CSS, Hook)
+- Update naming conventions
+- Add YouTube video/playlist ID
+- Integrate into DashboardStatsPanel and SystemOverview
+- Test all functionality
+
+The system is designed to be easily extensible while maintaining consistency
+across all players. The wavelength UI is sharp, responsive, and theme-aware,
+providing an excellent user experience.
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+

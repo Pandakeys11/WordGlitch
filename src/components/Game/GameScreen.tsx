@@ -627,7 +627,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         currentPaletteId={currentPalette.id}
         onPaletteChange={handlePaletteChange}
       />
-      <WordList words={words} palette={currentPalette} />
+      <WordList words={words} palette={currentPalette} isPaused={isPaused} />
       {gameOver && finalScore && (
         <GameOverModal
           score={finalScore}
