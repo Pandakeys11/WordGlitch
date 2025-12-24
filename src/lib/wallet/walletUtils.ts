@@ -21,11 +21,11 @@ export function isWalletAvailable(): boolean {
  * Get current wallet address if connected
  */
 export async function getWalletAddress(): Promise<string | null> {
-  if (!isWalletAvailable()) return null;
+  if (!isWalletAvailable() || !window.ethereum) return null;
 
   try {
     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-    return accounts.length > 0 ? accounts[0] : null;
+    return accounts && accounts.length > 0 ? accounts[0] : null;
   } catch (error) {
     console.error('Error getting wallet address:', error);
     return null;
@@ -36,7 +36,7 @@ export async function getWalletAddress(): Promise<string | null> {
  * Connect to wallet
  */
 export async function connectWallet(): Promise<string | null> {
-  if (!isWalletAvailable()) {
+  if (!isWalletAvailable() || !window.ethereum) {
     throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
   }
 
@@ -45,7 +45,7 @@ export async function connectWallet(): Promise<string | null> {
       method: 'eth_requestAccounts',
     });
     
-    if (accounts.length === 0) {
+    if (!accounts || accounts.length === 0) {
       throw new Error('No accounts found. Please unlock your wallet.');
     }
 
@@ -70,11 +70,11 @@ export function disconnectWallet(): void {
  * Get chain ID
  */
 export async function getChainId(): Promise<number | null> {
-  if (!isWalletAvailable()) return null;
+  if (!isWalletAvailable() || !window.ethereum) return null;
 
   try {
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    return parseInt(chainId, 16);
+    return chainId ? parseInt(chainId, 16) : null;
   } catch (error) {
     console.error('Error getting chain ID:', error);
     return null;
@@ -93,7 +93,7 @@ export function formatAddress(address: string): string {
  * Listen for wallet account changes
  */
 export function onAccountsChanged(callback: (accounts: string[]) => void): () => void {
-  if (!isWalletAvailable()) return () => {};
+  if (!isWalletAvailable() || !window.ethereum) return () => {};
 
   const handler = (accounts: string[]) => {
     callback(accounts);
@@ -102,7 +102,9 @@ export function onAccountsChanged(callback: (accounts: string[]) => void): () =>
   window.ethereum.on('accountsChanged', handler);
 
   return () => {
-    window.ethereum.removeListener('accountsChanged', handler);
+    if (window.ethereum) {
+      window.ethereum.removeListener('accountsChanged', handler);
+    }
   };
 }
 
@@ -110,7 +112,7 @@ export function onAccountsChanged(callback: (accounts: string[]) => void): () =>
  * Listen for chain changes
  */
 export function onChainChanged(callback: (chainId: string) => void): () => void {
-  if (!isWalletAvailable()) return () => {};
+  if (!isWalletAvailable() || !window.ethereum) return () => {};
 
   const handler = (chainId: string) => {
     callback(chainId);
@@ -119,7 +121,9 @@ export function onChainChanged(callback: (chainId: string) => void): () => void 
   window.ethereum.on('chainChanged', handler);
 
   return () => {
-    window.ethereum.removeListener('chainChanged', handler);
+    if (window.ethereum) {
+      window.ethereum.removeListener('chainChanged', handler);
+    }
   };
 }
 
