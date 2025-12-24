@@ -1,0 +1,218 @@
+.leaderboardScreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #0a0f0d 0%, #1a2520 100%);
+  color: #fff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.backButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 2rem;
+  font-family: inherit;
+}
+
+.backButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-4px);
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+  text-shadow: 0 0 20px rgba(97, 220, 163, 0.5);
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  margin: 0 0 2rem 0;
+  font-style: italic;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filterButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filterButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.filterButton.active {
+  background: linear-gradient(135deg, #61dca3 0%, #61b3dc 100%);
+  color: #000;
+  border-color: transparent;
+}
+
+.table {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(97, 220, 163, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 80px 1fr 150px 150px 100px;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(97, 220, 163, 0.1);
+  border-bottom: 1px solid rgba(97, 220, 163, 0.3);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 80px 1fr 150px 150px 100px;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+}
+
+.row:hover {
+  background: rgba(97, 220, 163, 0.05);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rank {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: #61dca3;
+}
+
+.medal {
+  font-size: 1.5rem;
+}
+
+.rankNumber {
+  font-family: 'Courier New', monospace;
+}
+
+.profile {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.totalScore {
+  font-weight: bold;
+  color: #61dca3;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+}
+
+.totalTime {
+  font-weight: bold;
+  color: #61b3dc;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+}
+
+.level {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.125rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+
+  .header,
+  .row {
+    grid-template-columns: 60px 1fr 120px 120px 80px;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+  }
+
+  .totalScore {
+    font-size: 0.9rem;
+  }
+
+  .totalTime {
+    font-size: 0.85rem;
+  }
+
+  .profile {
+    font-size: 0.8rem;
+  }
+}
+

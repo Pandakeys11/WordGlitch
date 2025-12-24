@@ -1,0 +1,102 @@
+.gameScreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  /* Safe area support for notched devices */
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  /* Prevent mobile browser UI adjustments */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Optimize rendering for mobile */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: contents;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .gameScreen {
+    /* Disable pull-to-refresh on mobile */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Ensure LetterGlitch canvas is behind UI */
+.gameScreen > div:first-child {
+  z-index: 1;
+}
+
+.pauseOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+
+.pauseModal {
+  background: linear-gradient(135deg, rgba(43, 69, 57, 0.95) 0%, rgba(27, 40, 35, 0.95) 100%);
+  border: 1px solid rgba(97, 220, 163, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  min-width: 300px;
+}
+
+.pauseModal h2 {
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.resumeButton,
+.menuButton {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.resumeButton {
+  background: linear-gradient(135deg, #61dca3 0%, #61b3dc 100%);
+  color: #000;
+}
+
+.resumeButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(97, 220, 163, 0.6);
+}
+
+.menuButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.menuButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+

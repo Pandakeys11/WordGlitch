@@ -1,0 +1,68 @@
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(97, 220, 163, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s;
+}
+
+.badge:hover {
+  border-color: rgba(97, 220, 163, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(97, 220, 163, 0.2);
+}
+
+.icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(97, 220, 163, 0.5));
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.name {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.date {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .badge {
+    padding: 0.875rem;
+  }
+
+  .icon {
+    font-size: 2rem;
+  }
+
+  .name {
+    font-size: 1rem;
+  }
+
+  .description {
+    font-size: 0.8125rem;
+  }
+}
+

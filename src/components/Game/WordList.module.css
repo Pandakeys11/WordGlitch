@@ -1,0 +1,103 @@
+.wordList {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: linear-gradient(to top, 
+    rgba(0, 0, 0, 1) 0%, 
+    rgba(0, 0, 0, 0.98) 40%,
+    rgba(0, 0, 0, 0.95) 60%, 
+    rgba(0, 0, 0, 0.85) 80%, 
+    rgba(0, 0, 0, 0.6) 90%,
+    transparent 100%
+  );
+  padding: 1.5rem 1rem;
+  max-height: 40vh;
+  min-height: 180px;
+  overflow-y: auto;
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+}
+
+.section {
+  margin-bottom: 1rem;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.word {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+}
+
+.word.found {
+  background: rgba(0, 255, 136, 0.2);
+  border-color: rgba(0, 255, 136, 0.5);
+  opacity: 0.8;
+}
+
+.wordText {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.word.found .wordText {
+  color: #00ff88;
+  text-decoration: line-through;
+}
+
+.wordPoints {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.word.found .wordPoints {
+  color: #00ff88;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .wordList {
+    padding: 1rem 0.75rem;
+    max-height: 35vh;
+  }
+
+  .word {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .wordText {
+    font-size: 0.875rem;
+  }
+}
+
