@@ -5,7 +5,14 @@ import { ColorPalette } from '@/lib/colorPalettes';
 import styles from './GameMusicPlayer.module.css';
 
 // Music player configurations (from Omega Player system)
-const MUSIC_PLAYERS = [
+interface MusicPlayerConfig {
+  id: string;
+  name: string;
+  videoId: string;
+  playlistId?: string;
+}
+
+const MUSIC_PLAYERS: MusicPlayerConfig[] = [
   {
     id: 'lofi',
     name: 'Lo-Fi',
@@ -37,13 +44,13 @@ const MUSIC_PLAYERS = [
     name: 'Melodies',
     videoId: 'nxqlTRYs6NY',
   },
-] as const;
+];
 
 interface GameMusicPlayerState {
   isPlaying: boolean;
   volume: number;
   isMuted: boolean;
-  currentPlayer: typeof MUSIC_PLAYERS[number];
+  currentPlayer: MusicPlayerConfig;
 }
 
 interface GameMusicPlayerProps {
