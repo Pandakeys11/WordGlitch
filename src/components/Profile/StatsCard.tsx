@@ -6,7 +6,7 @@ import styles from './StatsCard.module.css';
 interface StatsCardProps {
   label: string;
   value: string | number;
-  icon?: string;
+  icon?: React.ReactNode;
   variant?: 'default' | 'highlight';
 }
 

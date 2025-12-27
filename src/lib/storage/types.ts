@@ -35,9 +35,17 @@ export interface ProfileMetadata {
   createdAt: number;
   lastPlayed: number;
   walletAddress?: string; // Optional wallet address linked to profile
+  profilePicture?: string; // Base64 data URL or image URL for profile picture
 }
 
 export interface StoredProfiles {
   profiles: ProfileMetadata[];
+}
+
+export interface StoredAntFarm {
+  ants: any[]; // Ant[] from antFarm types
+  items: any[]; // FarmItem[] from antFarm types
+  layout: any; // FarmLayout from antFarm types
+  lastUpdated: number;
 }
 

@@ -1,0 +1,162 @@
+.marketplace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: #0f0;
+  font-family: 'Courier New', monospace;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 2px solid #0f0;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  text-shadow: 0 0 10px #0f0;
+  letter-spacing: 2px;
+}
+
+.currency {
+  font-size: 14px;
+  color: #ff0;
+}
+
+.currencyAmount {
+  font-weight: bold;
+  color: #0ff;
+}
+
+.categories {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.categoryBtn {
+  background: transparent;
+  border: 1px solid #0f0;
+  color: #0f0;
+  padding: 8px 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.categoryBtn:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.categoryBtn.active {
+  background: #0f0;
+  color: #000;
+  box-shadow: 0 0 15px #0f0;
+}
+
+.itemsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  padding: 0 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.itemCard {
+  border: 1px solid #0f0;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.itemCard:hover {
+  border-color: #0ff;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.itemIcon {
+  font-size: 32px;
+  text-align: center;
+}
+
+.itemInfo {
+  flex: 1;
+}
+
+.itemName {
+  font-weight: bold;
+  color: #0ff;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.itemDescription {
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.locked {
+  color: #f00;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.itemEffects {
+  font-size: 11px;
+  color: #0f0;
+  margin-top: 8px;
+}
+
+.itemEffects > div {
+  margin: 2px 0;
+}
+
+.itemFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.itemPrice {
+  color: #ff0;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.purchaseBtn {
+  background: #0f0;
+  border: none;
+  color: #000;
+  padding: 6px 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.purchaseBtn:hover:not(:disabled) {
+  background: #0ff;
+  box-shadow: 0 0 10px #0ff;
+}
+
+.purchaseBtn:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+

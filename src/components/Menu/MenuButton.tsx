@@ -9,7 +9,7 @@ interface MenuButtonProps {
   onClick: () => void;
   variant?: 'primary' | 'secondary' | 'tertiary';
   disabled?: boolean;
-  icon?: string;
+  icon?: React.ReactNode;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   palette?: ColorPalette;

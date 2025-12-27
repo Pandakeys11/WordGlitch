@@ -8,6 +8,10 @@
   z-index: 1000;
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease-out;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {
@@ -26,8 +30,13 @@
   padding: 2rem;
   max-width: 90vw;
   width: 500px;
+  max-height: calc(100vh - 2rem);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s ease-out;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  margin: auto;
 }
 
 @keyframes slideUp {
@@ -41,19 +50,57 @@
   }
 }
 
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
 .title {
   font-size: 2rem;
   font-weight: bold;
   color: #fff;
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   text-shadow: 0 0 20px rgba(97, 220, 163, 0.5);
 }
 
+.performanceRating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  border: 2px solid;
+  background: rgba(0, 0, 0, 0.3);
+  min-width: 100px;
+}
+
+.ratingLetter {
+  font-size: 3rem;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.ratingLabel {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 .scoreSection {
   margin-bottom: 2rem;
+  min-height: 0; /* Allows flex child to shrink */
+  display: flex;
+  flex-direction: column;
 }
 
 .finalScore {
@@ -87,6 +134,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .stat {
@@ -136,6 +184,107 @@
   font-weight: bold;
   font-family: 'Courier New', monospace;
   text-shadow: 0 0 20px rgba(97, 179, 220, 0.5);
+}
+
+.multipliersSection {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.multiplierHeader {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.multipliers {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.multiplier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  min-width: 100px;
+}
+
+.multiplierLabel {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.multiplierValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #FFD700;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.breakdownDetails {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-height: 400px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.breakdownSummary {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.breakdownSummary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.breakdown {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0; /* Allows flex child to shrink */
+}
+
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.breakdownDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0.5rem 0;
 }
 
 .actions {
@@ -190,26 +339,277 @@
 }
 
 @media (max-width: 768px) {
+  .overlay {
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .modal {
     padding: 1.5rem;
-    width: 95vw;
+    width: 100%;
+    max-width: 95vw;
+    max-height: calc(100vh - 2rem);
+    margin: 1rem auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .breakdownDetails {
+    max-height: 300px;
+  }
+
+  .header {
+    margin-bottom: 1rem;
   }
 
   .title {
     font-size: 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .performanceRating {
+    padding: 0.625rem 1.25rem;
+    min-width: 80px;
+  }
+
+  .ratingLetter {
+    font-size: 2.5rem;
+  }
+
+  .scoreSection {
+    margin-bottom: 1.5rem;
+  }
+
+  .finalScore {
+    padding: 1rem;
+    margin-bottom: 1rem;
   }
 
   .scoreValue {
     font-size: 2rem;
   }
 
+  .totalScoreSection {
+    padding: 0.875rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .totalScoreValue {
+    font-size: 2rem;
+  }
+
   .stats {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat {
+    padding: 0.625rem;
+  }
+
+  .statLabel {
+    font-size: 0.7rem;
+  }
+
+  .statValue {
+    font-size: 1.1rem;
+  }
+
+  .actions {
+    gap: 0.625rem;
   }
 
   .button {
     padding: 0.875rem 1.5rem;
     font-size: 0.875rem;
+    min-height: 44px; /* Touch target size */
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: 0.5rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .modal {
+    padding: 1rem;
+    max-width: 100%;
+    max-height: calc(100vh - 1rem);
+    margin: 0.5rem auto;
+  }
+
+  .breakdownDetails {
+    max-height: 250px;
+    padding: 0.75rem;
+  }
+
+  .header {
+    margin-bottom: 0.875rem;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    margin-bottom: 0;
+    letter-spacing: 0.08em;
+  }
+
+  .performanceRating {
+    padding: 0.5rem 1rem;
+    min-width: 70px;
+  }
+
+  .ratingLetter {
+    font-size: 2rem;
+  }
+
+  .multipliers {
+    gap: 1rem;
+  }
+
+  .multiplier {
+    min-width: 80px;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .multiplierValue {
+    font-size: 1.25rem;
+  }
+
+  .scoreSection {
+    margin-bottom: 1rem;
+  }
+
+  .finalScore {
+    padding: 0.875rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .scoreLabel {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .scoreValue {
+    font-size: 1.75rem;
+  }
+
+  .totalScoreSection {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .totalScoreLabel {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .totalScoreValue {
+    font-size: 1.75rem;
+  }
+
+  .stats {
+    gap: 0.625rem;
+  }
+
+  .stat {
+    padding: 0.5rem;
+  }
+
+  .statLabel {
+    font-size: 0.65rem;
+  }
+
+  .statValue {
+    font-size: 1rem;
+  }
+
+  .actions {
+    gap: 0.5rem;
+  }
+
+  .button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.8rem;
+    min-height: 44px; /* Touch target size */
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+  .overlay {
+    align-items: center;
+    padding: 0.5rem;
+  }
+
+  .modal {
+    max-height: calc(100vh - 1rem);
+    padding: 1rem;
+    margin: 0.5rem auto;
+  }
+
+  .breakdownDetails {
+    max-height: 200px;
+    padding: 0.75rem;
+  }
+
+  .title {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .scoreSection {
+    margin-bottom: 0.75rem;
+  }
+
+  .finalScore {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .scoreValue {
+    font-size: 1.5rem;
+  }
+
+  .totalScoreValue {
+    font-size: 1.5rem;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .stat {
+    padding: 0.5rem;
+  }
+
+  .statLabel {
+    font-size: 0.65rem;
+  }
+
+  .statValue {
+    font-size: 0.9rem;
+  }
+
+  .actions {
+    gap: 0.5rem;
+  }
+
+  .button {
+    padding: 0.625rem 1rem;
+    font-size: 0.75rem;
+    min-height: 40px;
   }
 }
 

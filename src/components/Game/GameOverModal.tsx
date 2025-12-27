@@ -38,7 +38,6 @@ export default function GameOverModal({
   const profile = loadProfile();
 
   // Use cumulative total time from prop if provided, otherwise calculate from profile
-  // The prop ensures we have the correct total including the current level
   const totalTime = cumulativeTotalTime !== undefined 
     ? cumulativeTotalTime 
     : (() => {
@@ -48,7 +47,6 @@ export default function GameOverModal({
       })();
 
   // Use cumulative total score from prop if provided, otherwise calculate from profile
-  // The prop ensures we have the correct total including the current level
   const totalScore = cumulativeTotalScore !== undefined
     ? cumulativeTotalScore
     : (() => {
@@ -65,7 +63,6 @@ export default function GameOverModal({
 
   // Format time in seconds to MM:SS or HH:MM:SS
   const formatTime = (seconds: number): string => {
-    // Round to nearest second for display
     const totalSeconds = Math.round(seconds);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -77,6 +74,31 @@ export default function GameOverModal({
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Get performance rating color
+  const getRatingColor = (rating?: string) => {
+    switch (rating) {
+      case 'S': return '#FFD700'; // Gold
+      case 'A': return '#00FF00'; // Green
+      case 'B': return '#00BFFF'; // Blue
+      case 'C': return '#FFA500'; // Orange
+      case 'D': return '#FF6347'; // Tomato
+      case 'F': return '#FF0000'; // Red
+      default: return currentPalette.uiColors.primary;
+    }
+  };
+
+  // Get difficulty label
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'EASY';
+      case 'average': return 'AVERAGE';
+      case 'hard': return 'HARD';
+      default: return 'EASY';
+    }
+  };
+
+  const ratingColor = getRatingColor(score.performanceRating);
+  const difficultyLabel = getDifficultyLabel(currentPalette.difficulty);
 
   return (
     <div className={styles.overlay}>
@@ -86,15 +108,41 @@ export default function GameOverModal({
           borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
         }}
       >
-        <h2 
-          className={styles.title}
-          style={{
-            textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)}`,
-          }}
-        >
-          {isVictory ? 'Level Complete!' : 'Time\'s Up!'}
-        </h2>
+        {/* Header with Performance Rating */}
+        <div className={styles.header}>
+          <h2 
+            className={styles.title}
+            style={{
+              textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)}`,
+            }}
+          >
+            {isVictory ? 'Level Complete!' : 'Time\'s Up!'}
+          </h2>
+          
+          {score.performanceRating && (
+            <div 
+              className={styles.performanceRating}
+              style={{
+                background: `linear-gradient(135deg, ${hexToRgba(ratingColor, 0.2)} 0%, ${hexToRgba(ratingColor, 0.1)} 100%)`,
+                borderColor: hexToRgba(ratingColor, 0.5),
+                boxShadow: `0 0 20px ${hexToRgba(ratingColor, 0.3)}`,
+              }}
+            >
+              <span 
+                className={styles.ratingLetter}
+                style={{
+                  color: ratingColor,
+                  textShadow: `0 0 15px ${hexToRgba(ratingColor, 0.8)}`,
+                }}
+              >
+                {score.performanceRating}
+              </span>
+              <span className={styles.ratingLabel}>Performance</span>
+            </div>
+          )}
+        </div>
         
+        {/* Score Section */}
         <div className={styles.scoreSection}>
           <div className={styles.finalScore}>
             <span className={styles.scoreLabel}>Level Score</span>
@@ -124,6 +172,7 @@ export default function GameOverModal({
             </div>
           )}
 
+          {/* Detailed Stats Grid */}
           <div className={styles.stats}>
             <div className={styles.stat}>
               <span className={styles.statLabel}>Words Found</span>
@@ -136,19 +185,66 @@ export default function GameOverModal({
             {score.timeBonus > 0 && (
               <div className={styles.stat}>
                 <span className={styles.statLabel}>Time Bonus</span>
-                <span className={styles.statValue}>+{score.timeBonus.toLocaleString()}</span>
+                <span className={styles.statValue} style={{ color: '#00FF00' }}>
+                  +{score.timeBonus.toLocaleString()}
+                </span>
               </div>
             )}
             {score.comboMultiplier > 1 && (
               <div className={styles.stat}>
                 <span className={styles.statLabel}>Combo Multiplier</span>
-                <span className={styles.statValue}>x{score.comboMultiplier.toFixed(1)}</span>
+                <span className={styles.statValue} style={{ color: '#FFD700' }}>
+                  x{score.comboMultiplier.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {score.comboBonus && score.comboBonus > 0 && (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Combo Bonus</span>
+                <span className={styles.statValue} style={{ color: '#FFD700' }}>
+                  +{score.comboBonus.toLocaleString()}
+                </span>
               </div>
             )}
             <div className={styles.stat}>
               <span className={styles.statLabel}>Accuracy</span>
-              <span className={styles.statValue}>{score.accuracy.toFixed(1)}%</span>
+              <span 
+                className={styles.statValue}
+                style={{
+                  color: score.accuracy >= 90 ? '#00FF00' : score.accuracy >= 70 ? '#FFA500' : '#FF6347'
+                }}
+              >
+                {score.accuracy.toFixed(1)}%
+              </span>
             </div>
+            {score.accuracyBonus !== undefined && (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Accuracy Bonus</span>
+                <span className={styles.statValue}>+{score.accuracyBonus.toLocaleString()}</span>
+              </div>
+            )}
+            {score.perfectAccuracyBonus && score.perfectAccuracyBonus > 0 && (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Perfect Bonus</span>
+                <span className={styles.statValue} style={{ color: '#FFD700' }}>
+                  +{score.perfectAccuracyBonus.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {score.speedBonus !== undefined && score.speedBonus > 0 && (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Speed Bonus</span>
+                <span className={styles.statValue} style={{ color: '#00BFFF' }}>
+                  +{score.speedBonus.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {score.wordLengthBonus !== undefined && score.wordLengthBonus > 0 && (
+              <div className={styles.stat}>
+                <span className={styles.statLabel}>Word Length Bonus</span>
+                <span className={styles.statValue}>+{score.wordLengthBonus.toLocaleString()}</span>
+              </div>
+            )}
             {score.levelTime !== undefined && (
               <>
                 <div className={styles.stat}>
@@ -169,6 +265,94 @@ export default function GameOverModal({
               </>
             )}
           </div>
+
+          {/* Multipliers Section */}
+          {(score.levelMultiplier || score.difficultyMultiplier) && (
+            <div className={styles.multipliersSection}>
+              <div className={styles.multiplierHeader}>Score Multipliers</div>
+              <div className={styles.multipliers}>
+                {score.levelMultiplier && score.levelMultiplier > 1 && (
+                  <div className={styles.multiplier}>
+                    <span className={styles.multiplierLabel}>Level {level}</span>
+                    <span className={styles.multiplierValue}>x{score.levelMultiplier.toFixed(2)}</span>
+                  </div>
+                )}
+                {score.difficultyMultiplier && (
+                  <div className={styles.multiplier}>
+                    <span className={styles.multiplierLabel}>{difficultyLabel}</span>
+                    <span className={styles.multiplierValue}>x{score.difficultyMultiplier.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Score Breakdown (if available) */}
+          {score.scoreBreakdown && (
+            <details className={styles.breakdownDetails}>
+              <summary className={styles.breakdownSummary}>Detailed Breakdown</summary>
+              <div className={styles.breakdown}>
+                <div className={styles.breakdownRow}>
+                  <span>Base Score</span>
+                  <span>{score.scoreBreakdown.baseScore.toLocaleString()}</span>
+                </div>
+                {score.scoreBreakdown.timeBonus > 0 && (
+                  <div className={styles.breakdownRow}>
+                    <span>Time Bonus</span>
+                    <span>+{score.scoreBreakdown.timeBonus.toLocaleString()}</span>
+                  </div>
+                )}
+                {score.scoreBreakdown.accuracyBonus > 0 && (
+                  <div className={styles.breakdownRow}>
+                    <span>Accuracy Bonus</span>
+                    <span>+{score.scoreBreakdown.accuracyBonus.toLocaleString()}</span>
+                  </div>
+                )}
+                {score.scoreBreakdown.comboBonus > 0 && (
+                  <div className={styles.breakdownRow}>
+                    <span>Combo Bonus</span>
+                    <span>+{score.scoreBreakdown.comboBonus.toLocaleString()}</span>
+                  </div>
+                )}
+                {score.scoreBreakdown.speedBonus > 0 && (
+                  <div className={styles.breakdownRow}>
+                    <span>Speed Bonus</span>
+                    <span>+{score.scoreBreakdown.speedBonus.toLocaleString()}</span>
+                  </div>
+                )}
+                {score.scoreBreakdown.wordLengthBonus > 0 && (
+                  <div className={styles.breakdownRow}>
+                    <span>Word Length Bonus</span>
+                    <span>+{score.scoreBreakdown.wordLengthBonus.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className={styles.breakdownDivider} />
+                <div className={styles.breakdownRow}>
+                  <span>Before Multipliers</span>
+                  <span>{score.scoreBreakdown.beforeMultipliers.toLocaleString()}</span>
+                </div>
+                {score.scoreBreakdown.levelMultiplier > 1 && (
+                  <div className={styles.breakdownRow}>
+                    <span>× Level Multiplier</span>
+                    <span>x{score.scoreBreakdown.levelMultiplier.toFixed(2)}</span>
+                  </div>
+                )}
+                {score.scoreBreakdown.difficultyMultiplier > 1 && (
+                  <div className={styles.breakdownRow}>
+                    <span>× Difficulty Multiplier</span>
+                    <span>x{score.scoreBreakdown.difficultyMultiplier.toFixed(1)}</span>
+                  </div>
+                )}
+                <div className={styles.breakdownDivider} />
+                <div className={styles.breakdownRow} style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+                  <span>Final Score</span>
+                  <span style={{ color: currentPalette.uiColors.primary }}>
+                    {score.scoreBreakdown.finalScore.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </details>
+          )}
         </div>
 
         <div className={styles.actions}>
@@ -201,4 +385,3 @@ export default function GameOverModal({
     </div>
   );
 }
-

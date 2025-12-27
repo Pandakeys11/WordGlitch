@@ -21,6 +21,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  /* Safe area support */
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  /* Improve scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .musicPlayerContainer {
@@ -34,6 +41,8 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  /* Improve scrolling */
+  -webkit-overflow-scrolling: touch;
 }
 
 .section {
@@ -69,6 +78,8 @@
   padding: 0.5rem 0.75rem;
   backdrop-filter: blur(8px);
   transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .word.found {
@@ -84,6 +95,7 @@
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .word.found .wordText {
@@ -95,6 +107,7 @@
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .word.found .wordPoints {
@@ -104,8 +117,12 @@
 
 @media (max-width: 768px) {
   .wordList {
-    padding: 0.75rem 0.75rem 1rem 0.75rem;
-    max-height: 35vh;
+    padding: 0.75rem;
+    max-height: 32vh;
+    min-height: 150px;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   }
 
   .musicPlayerContainer {
@@ -118,6 +135,86 @@
 
   .wordText {
     font-size: 0.875rem;
+  }
+
+  .wordPoints {
+    font-size: 0.7rem;
+  }
+
+  .word.found .wordPoints {
+    font-size: 0.875rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .wordList {
+    padding: 0.5rem;
+    max-height: 30vh;
+    min-height: 140px;
+    gap: 0.5rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .section {
+    margin-bottom: 0.75rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .words {
+    gap: 0.4rem;
+  }
+
+  .word {
+    padding: 0.35rem 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .wordText {
+    font-size: 0.8rem;
+  }
+
+  .wordPoints {
+    font-size: 0.65rem;
+  }
+
+  .word.found .wordPoints {
+    font-size: 0.8rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+  .wordList {
+    max-height: 35vh;
+    min-height: 120px;
+    padding: 0.5rem;
+  }
+
+  .word {
+    padding: 0.3rem 0.5rem;
+  }
+
+  .wordText {
+    font-size: 0.75rem;
+  }
+
+  .wordPoints {
+    font-size: 0.6rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.7rem;
   }
 }
 

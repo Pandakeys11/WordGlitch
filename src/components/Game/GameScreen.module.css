@@ -1,8 +1,13 @@
 .gameScreen {
   position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  /* Use dynamic viewport height for better mobile support (accounts for browser UI) */
+  height: 100dvh;
+  height: 100vh; /* Fallback for browsers that don't support dvh */
   overflow: hidden;
   background: #000;
   /* Safe area support for notched devices */
@@ -19,6 +24,78 @@
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: contents;
+  /* Ensure proper box-sizing */
+  box-sizing: border-box;
+}
+
+.mandatoryPaletteNotice {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.mandatoryNoticeContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, rgba(255, 68, 68, 0.9) 0%, rgba(255, 140, 0, 0.9) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(255, 68, 68, 0.4);
+}
+
+.mandatoryIcon {
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.mandatoryText {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mandatoryText strong {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+  .mandatoryPaletteNotice {
+    top: 70px;
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+  }
+
+  .mandatoryNoticeContent {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .mandatoryIcon {
+    font-size: 1.125rem;
+  }
 }
 
 /* Mobile optimizations */
@@ -53,6 +130,8 @@
   padding: 2rem;
   text-align: center;
   min-width: 300px;
+  max-width: 90vw;
+  box-sizing: border-box;
 }
 
 .pauseModal h2 {
@@ -78,6 +157,51 @@
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
+  min-height: 44px; /* Touch target size */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .pauseModal {
+    padding: 1.5rem;
+    min-width: auto;
+    width: 90vw;
+    max-width: 400px;
+  }
+
+  .pauseModal h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .resumeButton,
+  .menuButton {
+    padding: 0.875rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.625rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pauseModal {
+    padding: 1.25rem;
+    width: 85vw;
+    max-width: 350px;
+  }
+
+  .pauseModal h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0.08em;
+  }
+
+  .resumeButton,
+  .menuButton {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
 }
 
 .resumeButton {

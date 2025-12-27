@@ -5,9 +5,8 @@ import MenuScreen from '@/components/Menu/MenuScreen';
 import GameScreen from '@/components/Game/GameScreen';
 import ProfileScreen from '@/components/Profile/ProfileScreen';
 import LeaderboardScreen from '@/components/Leaderboard/LeaderboardScreen';
-import SettingsScreen from '@/components/Settings/SettingsScreen';
-
-type Screen = 'menu' | 'game' | 'profile' | 'leaderboard' | 'settings';
+import RulesScreen from '@/components/Rules/RulesScreen';
+type Screen = 'menu' | 'game' | 'profile' | 'leaderboard' | 'rules';
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>('menu');
@@ -65,8 +64,8 @@ export default function Home() {
     setScreen('leaderboard');
   };
 
-  const handleSettings = () => {
-    setScreen('settings');
+  const handleRules = () => {
+    setScreen('rules');
   };
 
   const handleMenu = () => {
@@ -92,15 +91,15 @@ export default function Home() {
       return <ProfileScreen onBack={handleMenu} />;
     case 'leaderboard':
       return <LeaderboardScreen onBack={handleMenu} />;
-    case 'settings':
-      return <SettingsScreen onBack={handleMenu} />;
+    case 'rules':
+      return <RulesScreen onBack={handleMenu} />;
     default:
       return (
         <MenuScreen
           onPlay={handlePlay}
           onProfile={handleProfile}
           onLeaderboard={handleLeaderboard}
-          onSettings={handleSettings}
+          onSettings={handleRules}
         />
       );
   }

@@ -1,23 +1,68 @@
 import { Level, GameWord } from '@/types/game';
-import { WORD_LISTS, getWordVisibilityDuration } from '@/lib/constants';
-import { CHAR_WIDTH, CHAR_HEIGHT } from '@/lib/constants';
+import { WORD_LISTS, getWordVisibilityDuration, CHAR_WIDTH, CHAR_HEIGHT } from '@/lib/constants';
+import { getTextSizingForDifficulty } from './difficulty';
+import { PaletteDifficulty } from '@/lib/colorPalettes';
 
 export function generateWords(
   level: Level, 
   canvasWidth: number, 
   canvasHeight: number,
   topExclusionRows: number = 0,
-  bottomExclusionRows: number = 0
+  bottomExclusionRows: number = 0,
+  charWidth?: number,
+  charHeight?: number,
+  paletteDifficulty?: PaletteDifficulty
 ): GameWord[] {
   const words: GameWord[] = [];
   const availableWords = getWordsForDifficulty(level);
-  const cols = Math.floor(canvasWidth / CHAR_WIDTH);
-  const rows = Math.floor(canvasHeight / CHAR_HEIGHT);
+  
+  // Use dynamic sizing if provided, otherwise use defaults based on palette difficulty and level
+  const textSizing = paletteDifficulty 
+    ? getTextSizingForDifficulty(paletteDifficulty, level.level)
+    : getTextSizingForDifficulty('easy', level.level); // Default to easy if not provided
+  const width = charWidth ?? textSizing.charWidth;
+  const height = charHeight ?? textSizing.charHeight;
+  
+  // Ensure minimum dimensions for mobile (prevent division by zero or invalid calculations)
+  // After level 14, text gets smaller, so we need minimum safe dimensions
+  const safeWidth = Math.max(width, 6); // Minimum 6px per character (smaller for level 14+)
+  const safeHeight = Math.max(height, 10); // Minimum 10px per character
+  
+  const cols = Math.max(15, Math.floor(canvasWidth / safeWidth)); // Minimum 15 columns for mobile
+  const rows = Math.max(15, Math.floor(canvasHeight / safeHeight)); // Minimum 15 rows for mobile
   
   // Calculate playable area (excluding UI sections)
-  const playableStartRow = topExclusionRows;
-  const playableEndRow = rows - bottomExclusionRows;
-  const playableRows = Math.max(1, playableEndRow - playableStartRow);
+  // Adjust exclusion zones if playable area is too small (mobile-specific fix for level 14+)
+  let adjustedTopExclusion = topExclusionRows;
+  let adjustedBottomExclusion = bottomExclusionRows;
+  
+  let playableStartRow = Math.max(0, adjustedTopExclusion);
+  let playableEndRow = Math.max(playableStartRow + 1, rows - adjustedBottomExclusion);
+  let playableRows = Math.max(1, playableEndRow - playableStartRow);
+  
+  // Mobile-specific validation: ensure we have enough space for words
+  // After level 14, text gets smaller, so we need to ensure minimum playable area
+  if (playableRows < 5) {
+    // If playable area is too small, reduce exclusion zones
+    adjustedBottomExclusion = Math.max(0, bottomExclusionRows - 3);
+    adjustedTopExclusion = Math.max(0, topExclusionRows - 2);
+    playableEndRow = Math.max(playableStartRow + 1, rows - adjustedBottomExclusion);
+    playableRows = Math.max(5, playableEndRow - playableStartRow);
+  }
+  
+  // Final safety check: ensure minimum playable area
+  // If still too small, use fallback exclusion zones
+  if (playableRows < 3 || cols < 10) {
+    adjustedTopExclusion = Math.max(0, Math.floor(rows * 0.05));
+    adjustedBottomExclusion = Math.max(0, Math.floor(rows * 0.1));
+    playableStartRow = Math.max(0, adjustedTopExclusion);
+    playableEndRow = Math.max(playableStartRow + 1, rows - adjustedBottomExclusion);
+    playableRows = Math.max(3, playableEndRow - playableStartRow);
+  }
+  
+  // Use adjusted exclusion values for the rest of the function
+  const finalTopExclusion = adjustedTopExclusion;
+  const finalBottomExclusion = adjustedBottomExclusion;
 
   // Filter words by length requirements
   const validWords = availableWords.filter(

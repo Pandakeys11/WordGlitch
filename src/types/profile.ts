@@ -7,6 +7,20 @@ export interface GameStats {
   totalPlayTime: number;      // seconds
   currentLevel: number;
   unlockedLevels: number[];
+  
+  // Extended statistics
+  totalRoundsPlayed: number;  // Same as levelsCompleted, but clearer naming
+  highestRound: number;        // Same as currentLevel, but clearer naming
+  bestRoundScore: number;      // Same as bestScore, but clearer naming
+  fastestRoundTime: number;    // Best (fastest) round time in seconds
+  averageRoundTime: number;    // Average time per round in seconds
+  averageScorePerRound: number; // Average score per round
+  totalAttempts: number;       // Total clicks/attempts across all rounds
+  totalCorrectFinds: number;   // Total correct word finds
+  longestCombo: number;        // Longest combo achieved
+  perfectRounds: number;       // Number of rounds with 100% accuracy
+  wordsPerMinute: number;      // Average words found per minute
+  bestAccuracy: number;        // Best accuracy achieved in a single round
 }
 
 export interface Achievement {

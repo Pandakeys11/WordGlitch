@@ -53,11 +53,14 @@
   text-shadow: 0 0 20px rgba(97, 220, 163, 0.5);
 }
 
+.statsSection {
+  margin-bottom: 3rem;
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 3rem;
 }
 
 .achievementsSection {
@@ -313,8 +316,19 @@
 }
 
 @media (max-width: 768px) {
+  .profileScreen {
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
   .container {
     padding: 1.5rem;
+    padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
   }
 
   .title {
@@ -357,6 +371,101 @@
 
   .createForm {
     padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .backButton {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    min-height: 44px; /* Touch target size */
+  }
+
+  .statsGrid {
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .achievementsGrid {
+    gap: 0.75rem;
+  }
+
+  .profileCard {
+    padding: 1rem;
+  }
+
+  .profileName {
+    font-size: 1.25rem;
+  }
+
+  .profileMeta {
+    font-size: 0.8rem;
+  }
+
+  .loginButton,
+  .deleteButton,
+  .switchButton,
+  .logoutButton {
+    padding: 0.625rem 1rem;
+    font-size: 0.9rem;
+    min-height: 44px; /* Touch target size */
+  }
+
+  .createForm {
+    padding: 1.25rem;
+  }
+
+  .nameInput {
+    padding: 0.875rem;
+    font-size: 1rem;
+    min-height: 44px; /* Touch target size */
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    min-height: 44px; /* Touch target size */
+  }
+
+  .resetSection {
+    padding: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .resetButton {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    min-height: 44px; /* Touch target size */
+  }
+
+  .walletSection {
+    padding: 1.25rem;
+  }
+
+  .connectButton {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    min-height: 44px; /* Touch target size */
   }
 }
 

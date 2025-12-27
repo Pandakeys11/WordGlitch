@@ -75,7 +75,10 @@
 }
 
 .icon {
-  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .label {
@@ -87,10 +90,39 @@
     padding: 1rem 1.5rem;
     font-size: 1rem;
     min-width: 180px;
+    min-height: 44px; /* Touch target size */
   }
 
   .icon {
-    font-size: 1.25rem;
+    /* Icon size handled by SVG size prop */
+  }
+}
+
+@media (max-width: 480px) {
+  .button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+    min-width: 160px;
+    min-height: 44px; /* Touch target size */
+    letter-spacing: 0.08em;
+  }
+
+  .icon {
+    /* Icon size handled by SVG size prop */
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+  .button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    min-width: 150px;
+    min-height: 40px;
+  }
+
+  .icon {
+    /* Icon size handled by SVG size prop */
   }
 }
 

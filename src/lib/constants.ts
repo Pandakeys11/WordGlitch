@@ -1,9 +1,76 @@
 export const APP_VERSION = '1.0.0';
 
+/**
+ * Mandatory Palette Requirements for Boss Levels
+ * Certain levels require specific palette difficulties to progress
+ */
+export const MANDATORY_AVERAGE_LEVELS = [5, 10] as const;
+export const MANDATORY_HARD_LEVELS = [15, 25, 35, 50] as const;
+
+/**
+ * Get mandatory palette difficulty for a level
+ * Returns 'average' for levels 5 and 10
+ * Returns 'hard' for levels 15, 25, 35, 50, and random levels after 50
+ * Returns null if no mandatory requirement
+ */
+export function getMandatoryPaletteDifficulty(level: number): 'average' | 'hard' | null {
+  // Check fixed average levels
+  if (MANDATORY_AVERAGE_LEVELS.includes(level as any)) {
+    return 'average';
+  }
+  
+  // Check fixed hard levels
+  if (MANDATORY_HARD_LEVELS.includes(level as any)) {
+    return 'hard';
+  }
+  
+  // Random hard levels after level 50
+  // Use deterministic random based on level number for consistency
+  if (level > 50) {
+    // Simple seeded random: use level as seed
+    // This ensures same level always has same requirement per player
+    const seed = level * 7919; // Prime number for better distribution
+    const random = ((seed * 9301 + 49297) % 233280) / 233280;
+    
+    // 30% chance for hard requirement after level 50
+    if (random < 0.3) {
+      return 'hard';
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Check if a level requires a mandatory palette
+ */
+export function hasMandatoryPalette(level: number): boolean {
+  return getMandatoryPaletteDifficulty(level) !== null;
+}
+
+/**
+ * Get all hard boss levels (fixed + random after 50)
+ * Useful for display purposes
+ */
+export function getHardBossLevels(upToLevel: number = 100): number[] {
+  const hardLevels: number[] = [...MANDATORY_HARD_LEVELS];
+  
+  // Add random hard levels after 50
+  for (let level = 51; level <= upToLevel; level++) {
+    if (getMandatoryPaletteDifficulty(level) === 'hard') {
+      hardLevels.push(level);
+    }
+  }
+  
+  return hardLevels.sort((a, b) => a - b);
+}
+
 // Game Constants
-export const CHAR_WIDTH = 10;
-export const CHAR_HEIGHT = 20;
-export const FONT_SIZE = 16;
+// Base sizes increased slightly for better visibility
+// Easy palettes use 100% of these values (baseline)
+export const CHAR_WIDTH = 12;  // Increased from 10 (20% larger)
+export const CHAR_HEIGHT = 24; // Increased from 20 (20% larger)
+export const FONT_SIZE = 19;   // Increased from 16 (18.75% larger)
 
 // Word visibility color - distinct color that contrasts with glitch animation palette
 // Chosen to stand out clearly from the cool teal/blue glitch colors while remaining visible
@@ -60,33 +127,30 @@ export const getWordVisibilityDuration = (level: number): { min: number; max: nu
 
 /**
  * Calculate word clickable window duration based on level
- * Updates every 5 levels to match visibility duration progression
- * Lower levels: Longer clickable window
- * Higher levels: Shorter clickable window (matches visibility duration)
- * The clickable window should be slightly shorter than visibility to add challenge
+ * Updated to provide more time for early levels and progressive difficulty
+ * Levels 1-10: 5 seconds (5000ms) - generous time for beginners
+ * Levels 11-30: 4 seconds (4000ms) - moderate challenge
+ * Levels 31-75: 3 seconds (3000ms) - challenging
+ * Levels 75+: 2 seconds (2000ms) - maximum difficulty
  */
 export const getWordClickableDuration = (level: number): number => {
   // Ensure level is valid
   const validLevel = Math.max(1, Math.floor(level));
   
-  // Group levels into tiers (every 5 levels, matching visibility duration)
-  const tier = Math.floor((validLevel - 1) / 5);
-  
-  // Progressive difficulty scaling - clickable window is slightly shorter than visibility
-  // This creates a challenge where players need to click during the optimal window
-  // Tier 0 (levels 1-5): 3.5 seconds (visibility: 4-5 seconds)
-  // Tier 1 (levels 6-10): 3 seconds (visibility: 3.5-4.5 seconds)
-  // Tier 2 (levels 11-15): 2.5 seconds (visibility: 3-4 seconds)
-  // Tier 3 (levels 16-20): 2 seconds (visibility: 2.5-3.5 seconds)
-  // Tier 4 (levels 21-25): 1.5 seconds (visibility: 2-3 seconds)
-  // Tier 5 (levels 26-30): 1 second (visibility: 1.5-2.5 seconds)
-  // Tier 6+ (levels 31+): 0.8 seconds (visibility: 1-2 seconds)
-  
-  // Calculate duration in milliseconds
-  // Start at 3500ms and decrease by 500ms per tier, with minimum of 800ms
-  const duration = Math.max(800, 3500 - (tier * 500));
-  
-  return duration;
+  // Level-based duration tiers
+  if (validLevel <= 10) {
+    // Levels 1-10: 5 seconds
+    return 5000;
+  } else if (validLevel <= 30) {
+    // Levels 11-30: 4 seconds
+    return 4000;
+  } else if (validLevel <= 75) {
+    // Levels 31-75: 3 seconds
+    return 3000;
+  } else {
+    // Levels 75+: 2 seconds
+    return 2000;
+  }
 };
 
 // Difficulty Settings
@@ -308,67 +372,67 @@ export const ACHIEVEMENTS = {
     id: 'first_word',
     name: 'First Find',
     description: 'Find your first word',
-    icon: '🎯',
+    icon: 'target',
   },
   ten_words: {
     id: 'ten_words',
     name: 'Word Hunter',
     description: 'Find 10 words',
-    icon: '🔍',
+    icon: 'search',
   },
   fifty_words: {
     id: 'fifty_words',
     name: 'Word Seeker',
     description: 'Find 50 words',
-    icon: '🎪',
+    icon: 'search',
   },
   hundred_words: {
     id: 'hundred_words',
     name: 'Word Master',
     description: 'Find 100 words',
-    icon: '👑',
+    icon: 'trophy',
   },
   perfect_accuracy: {
     id: 'perfect_accuracy',
     name: 'Perfect',
     description: 'Complete a level with 100% accuracy',
-    icon: '⭐',
+    icon: 'star',
   },
   speed_demon: {
     id: 'speed_demon',
     name: 'Speed Demon',
     description: 'Complete a level in under 30 seconds',
-    icon: '⚡',
+    icon: 'zap',
   },
   combo_master: {
     id: 'combo_master',
     name: 'Combo Master',
     description: 'Achieve a 10+ word combo',
-    icon: '🔥',
+    icon: 'flame',
   },
   level_10: {
     id: 'level_10',
     name: 'Level 10',
     description: 'Reach level 10',
-    icon: '🏆',
+    icon: 'trophy',
   },
   level_25: {
     id: 'level_25',
     name: 'Level 25',
     description: 'Reach level 25',
-    icon: '💎',
+    icon: 'medal',
   },
   level_50: {
     id: 'level_50',
     name: 'Level 50',
     description: 'Reach level 50',
-    icon: '🌟',
+    icon: 'medal',
   },
   level_100: {
     id: 'level_100',
     name: 'Level 100',
     description: 'Reach level 100',
-    icon: '👑',
+    icon: 'trophy',
   },
 } as const;
 

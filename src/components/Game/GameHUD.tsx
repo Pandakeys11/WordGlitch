@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import PaletteToggle from '../UI/PaletteToggle';
 import { HomeIcon, RestartIcon, PauseIcon } from '../UI/GameIcons';
 import { getPalette, ColorPalette } from '@/lib/colorPalettes';
 import styles from './GameHUD.module.css';
@@ -18,7 +17,6 @@ interface GameHUDProps {
   onHome?: () => void;
   onRestart?: () => void;
   currentPaletteId?: string;
-  onPaletteChange?: (paletteId: string) => void;
 }
 
 export default function GameHUD({
@@ -33,7 +31,6 @@ export default function GameHUD({
   onHome,
   onRestart,
   currentPaletteId = 'ocean',
-  onPaletteChange,
 }: GameHUDProps) {
   const palette = getPalette(currentPaletteId);
   
@@ -90,13 +87,6 @@ export default function GameHUD({
           )}
         </div>
         <div className={styles.topBarActions}>
-          {onPaletteChange && (
-            <PaletteToggle
-              currentPaletteId={currentPaletteId}
-              onPaletteChange={onPaletteChange}
-              compact={true}
-            />
-          )}
           {onHome && (
             <button className={styles.actionButton} onClick={onHome} aria-label="Home">
               <HomeIcon className={styles.icon} size={20} />

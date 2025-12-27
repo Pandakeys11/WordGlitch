@@ -5,8 +5,11 @@ import {
   StoredLeaderboard,
   GameSettings,
   ProfileMetadata,
-  StoredProfiles
+  StoredProfiles,
+  StoredAntFarm
 } from './types';
+import { AntFarm } from '@/types/antFarm';
+import { generateStartingAnts } from '@/lib/antFarm/antGenerator';
 import { GameStats, Achievement, LeaderboardEntry } from '@/types/profile';
 import { GameSession } from '@/types/game';
 import { STORAGE_KEYS } from '@/lib/constants';
@@ -93,6 +96,19 @@ export function createProfile(name: string): string {
     totalPlayTime: 0,
     currentLevel: 1,
     unlockedLevels: [1],
+    // Extended statistics
+    totalRoundsPlayed: 0,
+    highestRound: 1,
+    bestRoundScore: 0,
+    fastestRoundTime: Infinity,
+    averageRoundTime: 0,
+    averageScorePerRound: 0,
+    totalAttempts: 0,
+    totalCorrectFinds: 0,
+    longestCombo: 0,
+    perfectRounds: 0,
+    wordsPerMinute: 0,
+    bestAccuracy: 0,
   };
 
   saveProfileForId(profileId, initialStats);
@@ -155,6 +171,45 @@ export function getProfileByWalletAddress(walletAddress: string): ProfileMetadat
   ) || null;
 }
 
+export function updateProfileName(profileId: string, newName: string): void {
+  const trimmedName = newName.trim();
+  if (!trimmedName) {
+    throw new Error('Profile name cannot be empty');
+  }
+
+  const profiles = loadProfilesList();
+  const profile = profiles.profiles.find(p => p.id === profileId);
+  
+  if (!profile) {
+    throw new Error('Profile not found');
+  }
+
+  // Check if name already exists (excluding current profile)
+  if (profiles.profiles.some(p => p.id !== profileId && p.name.toLowerCase() === trimmedName.toLowerCase())) {
+    throw new Error('A profile with this name already exists');
+  }
+
+  profile.name = trimmedName;
+  saveProfilesList(profiles);
+}
+
+export function updateProfilePicture(profileId: string, pictureDataUrl: string | null): void {
+  const profiles = loadProfilesList();
+  const profile = profiles.profiles.find(p => p.id === profileId);
+  
+  if (!profile) {
+    throw new Error('Profile not found');
+  }
+
+  profile.profilePicture = pictureDataUrl || undefined;
+  saveProfilesList(profiles);
+}
+
+export function getProfileMetadata(profileId: string): ProfileMetadata | null {
+  const profiles = loadProfilesList();
+  return profiles.profiles.find(p => p.id === profileId) || null;
+}
+
 export function deleteProfile(profileId: string): void {
   const profiles = loadProfilesList();
   profiles.profiles = profiles.profiles.filter(p => p.id !== profileId);
@@ -196,12 +251,46 @@ export function saveProfile(stats: GameStats): void {
   }
 }
 
+/**
+ * Migrate old GameStats to include new extended statistics fields
+ */
+function migrateStats(stats: GameStats): GameStats {
+  // If stats already has all new fields, return as-is
+  if ('totalRoundsPlayed' in stats && stats.totalRoundsPlayed !== undefined) {
+    return stats;
+  }
+
+  // Migrate old stats to new format
+  return {
+    ...stats,
+    totalRoundsPlayed: stats.levelsCompleted,
+    highestRound: stats.currentLevel,
+    bestRoundScore: stats.bestScore,
+    fastestRoundTime: Infinity, // Unknown for old profiles - will be set on next round
+    averageRoundTime: stats.levelsCompleted > 0 ? stats.totalPlayTime / stats.levelsCompleted : 0,
+    averageScorePerRound: stats.levelsCompleted > 0 ? stats.totalScore / stats.levelsCompleted : 0,
+    totalAttempts: stats.totalWordsFound, // Estimate: assume 1 attempt per word found
+    totalCorrectFinds: stats.totalWordsFound,
+    longestCombo: 0, // Unknown for old profiles
+    perfectRounds: 0, // Unknown for old profiles
+    wordsPerMinute: stats.totalPlayTime > 0 ? (stats.totalWordsFound / stats.totalPlayTime) * 60 : 0,
+    bestAccuracy: stats.averageAccuracy, // Use average as best estimate
+  };
+}
+
 function loadProfileForId(profileId: string): GameStats | null {
   try {
     const data = localStorage.getItem(getProfileKey(profileId));
     if (!data) return null;
     const profile: StoredProfile = JSON.parse(data);
-    return profile.stats;
+    const stats = profile.stats;
+    // Migrate stats if needed
+    const migratedStats = migrateStats(stats);
+    // Save migrated stats back if migration occurred
+    if (migratedStats !== stats) {
+      saveProfileForId(profileId, migratedStats);
+    }
+    return migratedStats;
   } catch {
     return null;
   }
@@ -570,6 +659,19 @@ export function resetProfile(): void {
     totalPlayTime: 0,
     currentLevel: 1,
     unlockedLevels: [1],
+    // Extended statistics
+    totalRoundsPlayed: 0,
+    highestRound: 1,
+    bestRoundScore: 0,
+    fastestRoundTime: Infinity,
+    averageRoundTime: 0,
+    averageScorePerRound: 0,
+    totalAttempts: 0,
+    totalCorrectFinds: 0,
+    longestCombo: 0,
+    perfectRounds: 0,
+    wordsPerMinute: 0,
+    bestAccuracy: 0,
   };
   saveProfileForId(profileId, initialStats);
 
@@ -600,6 +702,9 @@ export function updateStats(session: GameSession): void {
           ? Math.round((session.endTime - session.startTime) / 1000)
           : 0);
 
+    const isPerfectRound = session.score.accuracy >= 100;
+    const wordsPerMin = playTime > 0 ? (session.score.wordsFound / playTime) * 60 : 0;
+
     const newStats: GameStats = {
       totalWordsFound: session.score.wordsFound,
       levelsCompleted: 1,
@@ -609,6 +714,19 @@ export function updateStats(session: GameSession): void {
       totalPlayTime: playTime,
       currentLevel: session.level,
       unlockedLevels: [session.level],
+      // Extended statistics
+      totalRoundsPlayed: 1,
+      highestRound: session.level,
+      bestRoundScore: session.score.finalScore,
+      fastestRoundTime: playTime,
+      averageRoundTime: playTime,
+      averageScorePerRound: session.score.finalScore,
+      totalAttempts: session.attempts,
+      totalCorrectFinds: session.correctFinds,
+      longestCombo: session.maxCombo,
+      perfectRounds: isPerfectRound ? 1 : 0,
+      wordsPerMinute: wordsPerMin,
+      bestAccuracy: session.score.accuracy,
     };
     try {
       saveProfile(newStats);
@@ -626,15 +744,48 @@ export function updateStats(session: GameSession): void {
         ? Math.round((session.endTime - session.startTime) / 1000)
         : 0);
 
+  const newRoundsPlayed = existing.levelsCompleted + 1;
+  const isPerfectRound = session.score.accuracy >= 100;
+  const totalWords = existing.totalWordsFound + session.score.wordsFound;
+  const totalTime = existing.totalPlayTime + playTime;
+  const wordsPerMin = totalTime > 0 ? (totalWords / totalTime) * 60 : 0;
+
+  // Calculate fastest round time (handle Infinity/undefined for first round)
+  const existingFastest = existing.fastestRoundTime !== undefined && existing.fastestRoundTime !== Infinity
+    ? existing.fastestRoundTime
+    : Infinity;
+  const fastestTime = existingFastest === Infinity 
+    ? playTime 
+    : Math.min(existingFastest, playTime);
+
+  // Calculate average round time
+  const avgRoundTime = totalTime / newRoundsPlayed;
+
+  // Calculate average score per round
+  const avgScorePerRound = (existing.totalScore + session.score.finalScore) / newRoundsPlayed;
+
   const updatedStats: GameStats = {
-    totalWordsFound: existing.totalWordsFound + session.score.wordsFound,
-    levelsCompleted: existing.levelsCompleted + 1,
+    totalWordsFound: totalWords,
+    levelsCompleted: newRoundsPlayed,
     bestScore: Math.max(existing.bestScore, session.score.finalScore),
     totalScore: existing.totalScore + session.score.finalScore, // Accumulate total score across all levels
-    averageAccuracy: (existing.averageAccuracy * existing.levelsCompleted + session.score.accuracy) / (existing.levelsCompleted + 1),
-    totalPlayTime: existing.totalPlayTime + playTime,
+    averageAccuracy: (existing.averageAccuracy * existing.levelsCompleted + session.score.accuracy) / newRoundsPlayed,
+    totalPlayTime: totalTime,
     currentLevel: Math.max(existing.currentLevel, session.level),
     unlockedLevels: [...new Set([...existing.unlockedLevels, session.level])],
+    // Extended statistics
+    totalRoundsPlayed: newRoundsPlayed,
+    highestRound: Math.max(existing.highestRound || existing.currentLevel, session.level),
+    bestRoundScore: Math.max(existing.bestRoundScore || existing.bestScore, session.score.finalScore),
+    fastestRoundTime: fastestTime,
+    averageRoundTime: avgRoundTime,
+    averageScorePerRound: avgScorePerRound,
+    totalAttempts: (existing.totalAttempts || 0) + session.attempts,
+    totalCorrectFinds: (existing.totalCorrectFinds || 0) + session.correctFinds,
+    longestCombo: Math.max(existing.longestCombo || 0, session.maxCombo),
+    perfectRounds: (existing.perfectRounds || 0) + (isPerfectRound ? 1 : 0),
+    wordsPerMinute: wordsPerMin,
+    bestAccuracy: Math.max(existing.bestAccuracy || existing.averageAccuracy, session.score.accuracy),
   };
 
   try {
@@ -642,5 +793,109 @@ export function updateStats(session: GameSession): void {
   } catch (err) {
     console.error('Failed to save profile stats:', err);
   }
+}
+
+// Ant Farm Storage
+function getAntFarmKey(profileId: string): string {
+  return `word-glitch-antfarm-${profileId}`;
+}
+
+export function loadAntFarm(): AntFarm | null {
+  const profileId = getCurrentProfileId();
+  if (!profileId) {
+    return null;
+  }
+
+  try {
+    const data = localStorage.getItem(getAntFarmKey(profileId));
+    if (!data) {
+      // Return default ant farm with 2 starting ants
+      const defaultFarm: AntFarm = {
+        ants: generateStartingAnts(800, 600),
+        items: [],
+        layout: {
+          width: 800,
+          height: 600,
+          background: 'bg-sand',
+          tunnels: [],
+          chambers: [],
+        },
+        currency: 0,
+        totalEarned: 0,
+        lastUpdated: Date.now(),
+      };
+      // Save the default farm
+      saveAntFarm(defaultFarm);
+      return defaultFarm;
+    }
+    const farm = JSON.parse(data) as AntFarm;
+    // Ensure farm has at least 2 ants if it's empty (migration)
+    if (farm.ants.length === 0) {
+      farm.ants = generateStartingAnts(farm.layout.width || 800, farm.layout.height || 600);
+      saveAntFarm(farm);
+    }
+    return farm;
+  } catch {
+    // Return default ant farm with 2 starting ants on error
+    const defaultFarm: AntFarm = {
+      ants: generateStartingAnts(800, 600),
+      items: [],
+      layout: {
+        width: 800,
+        height: 600,
+        background: 'bg-sand',
+        tunnels: [],
+        chambers: [],
+      },
+      currency: 0,
+      totalEarned: 0,
+      lastUpdated: Date.now(),
+    };
+    return defaultFarm;
+  }
+}
+
+export function saveAntFarm(farm: AntFarm): void {
+  const profileId = getCurrentProfileId();
+  if (!profileId) {
+    console.warn('Cannot save ant farm: No active profile');
+    return;
+  }
+
+  try {
+    const data: StoredAntFarm = {
+      ants: farm.ants,
+      items: farm.items,
+      layout: farm.layout,
+      lastUpdated: Date.now(),
+    };
+    localStorage.setItem(getAntFarmKey(profileId), JSON.stringify(data));
+  } catch (err) {
+    console.error('Failed to save ant farm:', err);
+  }
+}
+
+export function addAntToFarm(ant: any): void {
+  const farm = loadAntFarm();
+  if (!farm) return;
+
+  farm.ants.push(ant);
+  saveAntFarm(farm);
+}
+
+export function addItemToFarm(item: any): void {
+  const farm = loadAntFarm();
+  if (!farm) return;
+
+  farm.items.push(item);
+  saveAntFarm(farm);
+}
+
+export function removeItemFromFarm(itemId: string): void {
+  const farm = loadAntFarm();
+  if (!farm) return;
+
+  farm.items = farm.items.filter(item => item.id !== itemId);
+  saveAntFarm(farm);
 }
 

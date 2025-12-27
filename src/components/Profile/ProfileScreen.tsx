@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import StatsCard from './StatsCard';
 import AchievementBadge from './AchievementBadge';
+import ProfileCard from './ProfileCard';
 import { 
   loadProfile, 
   loadAchievements, 
@@ -11,14 +12,28 @@ import {
   switchProfile,
   getCurrentProfileId,
   deleteProfile,
-  resetProfile,
-  linkWalletToProfile,
-  unlinkWalletFromProfile,
-  getProfileByWalletAddress
+  resetProfile
 } from '@/lib/storage/gameStorage';
-import { connectWallet, getWalletAddress, formatAddress, isWalletAvailable, onAccountsChanged } from '@/lib/wallet/walletUtils';
+import { syncCurrencyWithTotalScore, getCurrencyBalance } from '@/lib/antFarm/currency';
 import { GameStats } from '@/types/profile';
 import { ProfileMetadata } from '@/lib/storage/types';
+import {
+  TrophyIcon,
+  ClockIcon,
+  SearchIcon,
+  GamepadIcon,
+  StarIcon,
+  TrendingUpIcon,
+  TargetIcon,
+  BarChartIcon,
+  ZapIcon,
+  RocketIcon,
+  HandIcon,
+  CheckIcon,
+  HundredIcon,
+  FlameIcon,
+  MedalIcon
+} from '@/components/UI/GameIcons';
 import styles from './ProfileScreen.module.css';
 
 interface ProfileScreenProps {
@@ -36,30 +51,23 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [newProfileName, setNewProfileName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+  const [currency, setCurrency] = useState<number>(0);
 
   useEffect(() => {
     refreshData();
-    checkWalletConnection();
-    
-    // Listen for wallet account changes
-    if (isWalletAvailable()) {
-      const unsubscribe = onAccountsChanged((accounts) => {
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-        } else {
-          setWalletAddress(null);
-        }
-      });
-      
-      return () => {
-        unsubscribe();
-      };
-    }
   }, []);
 
-  const refreshData = async () => {
+  // Update currency when stats change
+  useEffect(() => {
+    if (stats) {
+      syncCurrencyWithTotalScore(stats.totalScore);
+      setCurrency(getCurrencyBalance());
+    } else {
+      setCurrency(0);
+    }
+  }, [stats]);
+
+  const refreshData = () => {
     const profileId = getCurrentProfileId();
     setCurrentProfileId(profileId);
     const allProfiles = getAllProfiles();
@@ -70,84 +78,11 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
       setStats(profile);
       setAchievements(loadAchievements().unlocked);
       setViewMode('profile');
-      
-      // Check if current profile has a linked wallet
-      const currentProfile = allProfiles.find(p => p.id === profileId);
-      if (currentProfile?.walletAddress) {
-        // If profile has linked wallet, use that address
-        setWalletAddress(currentProfile.walletAddress);
-      } else {
-        // Otherwise, check if wallet is connected but not linked
-        if (isWalletAvailable()) {
-          const connectedAddress = await getWalletAddress();
-          setWalletAddress(connectedAddress);
-        } else {
-          setWalletAddress(null);
-        }
-      }
+      // Currency will be synced in the useEffect that watches stats
     } else {
       setStats(null);
       setAchievements([]);
       setViewMode(allProfiles.length > 0 ? 'login' : 'create');
-      setWalletAddress(null);
-    }
-  };
-
-  const checkWalletConnection = async () => {
-    if (isWalletAvailable()) {
-      const address = await getWalletAddress();
-      setWalletAddress(address);
-    }
-  };
-
-  const handleConnectWallet = async () => {
-    if (!isWalletAvailable()) {
-      setError('No wallet found. Please install MetaMask or another Web3 wallet.');
-      return;
-    }
-
-    setIsConnectingWallet(true);
-    setError(null);
-
-    try {
-      const address = await connectWallet();
-      if (!address) {
-        throw new Error('Failed to get wallet address');
-      }
-
-      const profileId = getCurrentProfileId();
-      if (!profileId) {
-        setError('Please create or select a profile first');
-        setWalletAddress(null);
-        return;
-      }
-
-      // Check if wallet is already linked to another profile
-      const existingProfile = getProfileByWalletAddress(address);
-      if (existingProfile && existingProfile.id !== profileId) {
-        setError(`This wallet is already linked to profile "${existingProfile.name}"`);
-        setWalletAddress(null);
-        return;
-      }
-
-      // Link wallet to current profile
-      linkWalletToProfile(profileId, address);
-      setWalletAddress(address);
-      refreshData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect wallet');
-      setWalletAddress(null);
-    } finally {
-      setIsConnectingWallet(false);
-    }
-  };
-
-  const handleDisconnectWallet = () => {
-    const profileId = getCurrentProfileId();
-    if (profileId) {
-      unlinkWalletFromProfile(profileId);
-      setWalletAddress(null);
-      refreshData();
     }
   };
 
@@ -356,7 +291,6 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           <h1 className={styles.title}>Profile</h1>
           {currentProfile && (
             <div className={styles.profileHeaderActions}>
-              <span className={styles.currentProfileName}>{currentProfile.name}</span>
               {profiles.length > 1 && (
                 <button
                   className={styles.switchButton}
@@ -375,42 +309,14 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           )}
         </div>
 
-        {/* Wallet Connection Section */}
-        <div className={styles.walletSection}>
-          <h2 className={styles.walletTitle}>Wallet Connection</h2>
-          {walletAddress ? (
-            <div className={styles.walletConnected}>
-              <div className={styles.walletInfo}>
-                <span className={styles.walletLabel}>Connected:</span>
-                <span className={styles.walletAddress}>{formatAddress(walletAddress)}</span>
-              </div>
-              <button
-                className={styles.disconnectButton}
-                onClick={handleDisconnectWallet}
-              >
-                Disconnect
-              </button>
-            </div>
-          ) : (
-            <div className={styles.walletNotConnected}>
-              <p className={styles.walletDescription}>
-                Connect your wallet to link it with your profile and stats.
-              </p>
-              <button
-                className={styles.connectButton}
-                onClick={handleConnectWallet}
-                disabled={isConnectingWallet || !isWalletAvailable()}
-              >
-                {isConnectingWallet ? 'Connecting...' : isWalletAvailable() ? 'Connect Wallet' : 'Wallet Not Available'}
-              </button>
-              {!isWalletAvailable() && (
-                <p className={styles.walletHint}>
-                  Install MetaMask or another Web3 wallet to connect.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Profile Card */}
+        {currentProfile && (
+          <ProfileCard
+            profile={currentProfile}
+            onUpdate={refreshData}
+            currency={currency}
+          />
+        )}
 
         {error && (
           <div className={styles.error} style={{ marginTop: '1rem', marginBottom: '1rem' }}>
@@ -418,38 +324,141 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           </div>
         )}
 
-        <div className={styles.statsGrid}>
-          <StatsCard
-            label="Total Words Found"
-            value={stats.totalWordsFound.toLocaleString()}
-            icon="🔍"
-            variant="highlight"
-          />
-          <StatsCard
-            label="Levels Completed"
-            value={stats.levelsCompleted}
-            icon="🎮"
-          />
-          <StatsCard
-            label="Best Score"
-            value={stats.bestScore.toLocaleString()}
-            icon="⭐"
-          />
-          <StatsCard
-            label="Average Accuracy"
-            value={`${stats.averageAccuracy.toFixed(1)}%`}
-            icon="🎯"
-          />
-          <StatsCard
-            label="Total Play Time"
-            value={formatTime(stats.totalPlayTime)}
-            icon="⏱"
-          />
-          <StatsCard
-            label="Current Level"
-            value={stats.currentLevel}
-            icon="📈"
-          />
+        {/* Overview Stats Section */}
+        <div className={styles.statsSection}>
+          <h2 className={styles.sectionTitle}>Overview</h2>
+          <div className={styles.statsGrid}>
+            <StatsCard
+              label="Total Score"
+              value={stats.totalScore.toLocaleString()}
+              icon={<TrophyIcon size={32} />}
+              variant="highlight"
+            />
+            <StatsCard
+              label="Total Time"
+              value={formatTime(stats.totalPlayTime)}
+              icon={<ClockIcon size={32} />}
+              variant="highlight"
+            />
+            <StatsCard
+              label="Total Words Found"
+              value={stats.totalWordsFound.toLocaleString()}
+              icon={<SearchIcon size={32} />}
+              variant="highlight"
+            />
+            <StatsCard
+              label="Total Rounds Played"
+              value={stats.totalRoundsPlayed || stats.levelsCompleted}
+              icon={<GamepadIcon size={32} />}
+              variant="highlight"
+            />
+          </div>
+        </div>
+
+        {/* Performance Stats Section */}
+        <div className={styles.statsSection}>
+          <h2 className={styles.sectionTitle}>Performance</h2>
+          <div className={styles.statsGrid}>
+            <StatsCard
+              label="Best Round Score"
+              value={(stats.bestRoundScore || stats.bestScore).toLocaleString()}
+              icon={<StarIcon size={32} />}
+            />
+            <StatsCard
+              label="Highest Round"
+              value={stats.highestRound || stats.currentLevel}
+              icon={<TrendingUpIcon size={32} />}
+            />
+            <StatsCard
+              label="Best Accuracy"
+              value={`${(stats.bestAccuracy || stats.averageAccuracy).toFixed(1)}%`}
+              icon={<TargetIcon size={32} />}
+            />
+            <StatsCard
+              label="Average Accuracy"
+              value={`${stats.averageAccuracy.toFixed(1)}%`}
+              icon={<BarChartIcon size={32} />}
+            />
+            <StatsCard
+              label="Fastest Round"
+              value={stats.fastestRoundTime !== undefined && stats.fastestRoundTime !== Infinity && stats.fastestRoundTime > 0
+                ? formatTime(Math.round(stats.fastestRoundTime))
+                : 'N/A'}
+              icon={<ZapIcon size={32} />}
+            />
+            <StatsCard
+              label="Average Round Time"
+              value={stats.averageRoundTime !== undefined && stats.averageRoundTime > 0 
+                ? formatTime(Math.round(stats.averageRoundTime))
+                : 'N/A'}
+              icon={<ClockIcon size={32} />}
+            />
+          </div>
+        </div>
+
+        {/* Efficiency Stats Section */}
+        <div className={styles.statsSection}>
+          <h2 className={styles.sectionTitle}>Efficiency</h2>
+          <div className={styles.statsGrid}>
+            <StatsCard
+              label="Words Per Minute"
+              value={stats.wordsPerMinute > 0 
+                ? stats.wordsPerMinute.toFixed(1)
+                : '0.0'}
+              icon={<RocketIcon size={32} />}
+            />
+            <StatsCard
+              label="Average Score Per Round"
+              value={stats.averageScorePerRound > 0 
+                ? Math.round(stats.averageScorePerRound).toLocaleString()
+                : '0'}
+              icon={<TrendingUpIcon size={32} />}
+            />
+            <StatsCard
+              label="Total Attempts"
+              value={(stats.totalAttempts || 0).toLocaleString()}
+              icon={<HandIcon size={32} />}
+            />
+            <StatsCard
+              label="Total Correct Finds"
+              value={(stats.totalCorrectFinds || stats.totalWordsFound).toLocaleString()}
+              icon={<CheckIcon size={32} />}
+            />
+            {stats.totalAttempts > 0 && (
+              <StatsCard
+                label="Success Rate"
+                value={`${((stats.totalCorrectFinds || stats.totalWordsFound) / stats.totalAttempts * 100).toFixed(1)}%`}
+                icon={<TargetIcon size={32} />}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Achievement Stats Section */}
+        <div className={styles.statsSection}>
+          <h2 className={styles.sectionTitle}>Achievements</h2>
+          <div className={styles.statsGrid}>
+            <StatsCard
+              label="Perfect Rounds"
+              value={stats.perfectRounds || 0}
+              icon={<HundredIcon size={32} />}
+            />
+            <StatsCard
+              label="Longest Combo"
+              value={stats.longestCombo || 0}
+              icon={<FlameIcon size={32} />}
+            />
+            <StatsCard
+              label="Current Level"
+              value={stats.currentLevel}
+              icon={<GamepadIcon size={32} />}
+            />
+            <StatsCard
+              label="Levels Completed"
+              value={stats.levelsCompleted}
+              icon={<MedalIcon size={32} />}
+            />
+          </div>
         </div>
 
         <div className={styles.achievementsSection}>

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Level, GameWord } from '@/types/game';
 import { CHAR_WIDTH, CHAR_HEIGHT, FONT_SIZE } from '@/lib/constants';
 import { ColorPalette, getPalette, DEFAULT_PALETTE_ID } from '@/lib/colorPalettes';
+import { getTextSizingForDifficulty } from '@/lib/game/difficulty';
 
 // Get word color from palette (will be set dynamically)
 let currentPalette: ColorPalette = getPalette(DEFAULT_PALETTE_ID);
@@ -142,6 +143,7 @@ interface LetterGlitchProps {
   timeRemaining?: number;
   glitchColors?: string[];
   palette?: ColorPalette; // Color palette for glitch and hidden words
+  menuDisplayWords?: string[]; // Words to randomly display in menu screen (e.g., ["WORD GLITCH", "by PGT"])
 }
 
 interface Letter {
@@ -170,7 +172,7 @@ export interface LetterGlitchHandle {
 }
 
 const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
-  ({ level, words, onWordFound, isPaused, timeRemaining, glitchColors, palette }, ref) => {
+  ({ level, words, onWordFound, isPaused, timeRemaining, glitchColors, palette, menuDisplayWords }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
     const lettersRef = useRef<Letter[]>([]);
@@ -180,14 +182,79 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
     const glitchStateRef = useRef<'normal' | 'intense' | 'hover'>('normal');
     const glitchEndTimeRef = useRef<number>(0);
     const scrambleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Menu display words system
+    const menuWordRef = useRef<{ word: string; startCol: number; startRow: number; visibleUntil: number } | null>(null);
+    const lastMenuWordTimeRef = useRef<number>(0);
     
     // Use palette colors if provided, otherwise use glitchColors prop, otherwise default
     const activePalette = palette || getPalette(DEFAULT_PALETTE_ID);
     const defaultColors = glitchColors || activePalette.glitchColors;
     const originalColorsRef = useRef<string[]>(defaultColors);
 
+    // Store sizing in refs so they can be accessed in closures
+    // Always get fresh sizing based on palette difficulty and level (auto-reduces after level 14)
+    const getCurrentSizing = () => getTextSizingForDifficulty(activePalette.difficulty, level.level);
+    const sizingRef = useRef(getCurrentSizing());
+    
+    // Update sizing when palette difficulty or level changes
+    useEffect(() => {
+      const newSizing = getCurrentSizing();
+      sizingRef.current = newSizing;
+      // Reset letters when level changes to ensure clean state
+      // Note: initializeLetters is stable (useCallback with empty deps), so we can call it safely
+      if (colsRef.current > 0 && rowsRef.current > 0) {
+        initializeLetters();
+      }
+      // Force canvas to update by triggering a resize
+      if (canvasRef.current && containerRef.current) {
+        // Small delay to ensure canvas is ready
+        setTimeout(() => {
+          const event = new Event('resize');
+          window.dispatchEvent(event);
+        }, 50);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activePalette.difficulty, level.level]); // initializeLetters is stable, no need to include
+
     const colsRef = useRef<number>(0);
     const rowsRef = useRef<number>(0);
+    
+    // Initialize letters function - defined early so it can be used in useEffect
+    // Note: updateWordsInLetters is called separately via useEffect when words change
+    const initializeLetters = useCallback(() => {
+      const cols = colsRef.current;
+      const rows = rowsRef.current;
+      const letters: Letter[] = [];
+
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789Ω';
+      
+      // Use current palette colors from ref (always up-to-date)
+      const colors = originalColorsRef.current;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const char = characters[Math.floor(Math.random() * characters.length)];
+          const color = colors[Math.floor(Math.random() * colors.length)];
+
+          letters.push({
+            char,
+            color,
+            targetColor: color,
+            colorProgress: 1,
+            offsetX: 0,
+            offsetY: 0,
+            targetOffsetX: 0,
+            targetOffsetY: 0,
+            offsetProgress: 1,
+            isFrozen: false,
+            isVisibleWord: false,
+          });
+        }
+      }
+
+      lettersRef.current = letters;
+      // updateWordsInLetters will be called separately via useEffect when words are available
+    }, []); // Empty deps - only uses refs which are stable
     
     // Update current palette for getWordColor function and original colors
     useEffect(() => {
@@ -226,6 +293,10 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       if (!ctx) return;
 
       contextRef.current = ctx;
+      
+      // Ensure sizing is up-to-date for current palette difficulty and level (recalculate to be absolutely sure)
+      const currentSizing = getTextSizingForDifficulty(activePalette.difficulty, level.level);
+      sizingRef.current = currentSizing;
 
       // Debounce resize for better performance on mobile
       let resizeTimeout: NodeJS.Timeout | null = null;
@@ -235,12 +306,17 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         
         // Use actual container dimensions (CSS pixels)
-        const width = rect.width;
-        const height = rect.height;
+        // Ensure we get accurate dimensions that account for safe areas
+        // Round to avoid subpixel rendering issues
+        const width = Math.max(1, Math.floor(rect.width));
+        const height = Math.max(1, Math.floor(rect.height));
 
         // Set canvas internal resolution (device pixels)
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
+        // Ensure dimensions are integers to avoid rendering issues
+        const canvasWidth = Math.floor(width * dpr);
+        const canvasHeight = Math.floor(height * dpr);
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
         // Set canvas display size (CSS pixels)
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
@@ -249,9 +325,13 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         // This allows us to work in logical CSS pixel coordinates
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        // Store logical dimensions for calculations
-        colsRef.current = Math.floor(width / CHAR_WIDTH);
-        rowsRef.current = Math.floor(height / CHAR_HEIGHT);
+        // Get current sizing (always recalculate to ensure it's correct for current palette difficulty and level)
+        const currentSizing = getTextSizingForDifficulty(activePalette.difficulty, level.level);
+        sizingRef.current = currentSizing;
+        
+        // Store logical dimensions for calculations (use dynamic sizing)
+        colsRef.current = Math.floor(width / currentSizing.charWidth);
+        rowsRef.current = Math.floor(height / currentSizing.charHeight);
 
         initializeLetters();
       };
@@ -263,67 +343,65 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         }, 150); // Debounce resize events
       };
 
+      // Initial resize to set up canvas
       resizeCanvas();
+      
+      // Small delay to ensure canvas is fully initialized before drawing
+      setTimeout(() => {
+        if (canvas && container) {
+          resizeCanvas();
+        }
+      }, 100);
+      
+      // Handle window resize
       window.addEventListener('resize', debouncedResize);
-      window.addEventListener('orientationchange', () => {
-        // Handle orientation change with a slight delay
+      
+      // Handle orientation change with a slight delay to allow viewport to update
+      const handleOrientationChange = () => {
         setTimeout(() => {
           resizeCanvas();
         }, 200);
-      });
+      };
+      window.addEventListener('orientationchange', handleOrientationChange);
+      
+      // Handle visual viewport changes (important for mobile browsers with dynamic UI)
+      if (window.visualViewport) {
+        const handleVisualViewportResize = () => {
+          resizeCanvas();
+        };
+        window.visualViewport.addEventListener('resize', handleVisualViewportResize);
+        
+        return () => {
+          window.removeEventListener('resize', debouncedResize);
+          window.removeEventListener('orientationchange', handleOrientationChange);
+          window.visualViewport.removeEventListener('resize', handleVisualViewportResize);
+          if (resizeTimeout) clearTimeout(resizeTimeout);
+        };
+      }
 
       return () => {
         window.removeEventListener('resize', debouncedResize);
-        window.removeEventListener('orientationchange', debouncedResize);
+        window.removeEventListener('orientationchange', handleOrientationChange);
         if (resizeTimeout) clearTimeout(resizeTimeout);
       };
-    }, []);
+    }, [activePalette.difficulty, initializeLetters, activePalette, level.level]); // Reinitialize when palette difficulty or level changes
 
-    // Initialize letters
-    const initializeLetters = () => {
-      const cols = colsRef.current;
-      const rows = rowsRef.current;
-      const letters: Letter[] = [];
-
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789Ω';
-      
-      // Use current palette colors from ref (always up-to-date)
-      const colors = originalColorsRef.current;
-
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-          const char = characters[Math.floor(Math.random() * characters.length)];
-          const color = colors[Math.floor(Math.random() * colors.length)];
-
-          letters.push({
-            char,
-            color,
-            targetColor: color,
-            colorProgress: 1,
-            offsetX: 0,
-            offsetY: 0,
-            targetOffsetX: 0,
-            targetOffsetY: 0,
-            offsetProgress: 1,
-            isFrozen: false,
-            isVisibleWord: false,
-          });
-        }
-      }
-
-      lettersRef.current = letters;
-      updateWordsInLetters();
-    };
 
     // Update letters with word positions
     const updateWordsInLetters = () => {
       const letters = lettersRef.current;
       const cols = colsRef.current;
 
-      // First, reset visible word flags for all letters
+      // First, reset visible word flags for all letters (but preserve menu words)
       letters.forEach(letter => {
-        letter.isVisibleWord = false;
-        letter.visibleWordText = undefined;
+        // Only reset if it's not a menu word
+        const isMenuWord = menuDisplayWords && letter.visibleWordText && 
+                          menuDisplayWords.includes(letter.visibleWordText) &&
+                          !words.some(w => w.word === letter.visibleWordText);
+        if (!isMenuWord) {
+          letter.isVisibleWord = false;
+          letter.visibleWordText = undefined;
+        }
       });
 
       // Reset frozen state for non-found words
@@ -416,6 +494,101 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       // First, ensure active words stay visible
       updateWordsInLetters();
 
+      // Handle menu display words (for menu screen only)
+      if (menuDisplayWords && menuDisplayWords.length > 0) {
+        const cols = colsRef.current;
+        const rows = rowsRef.current;
+        const currentMenuWord = menuWordRef.current;
+        
+        // Check if current menu word has expired
+        if (currentMenuWord && now > currentMenuWord.visibleUntil) {
+          menuWordRef.current = null;
+        }
+        
+        // Randomly show a new menu word (every 3-6 seconds)
+        if (!currentMenuWord && now - lastMenuWordTimeRef.current > 3000) {
+          const randomWord = menuDisplayWords[Math.floor(Math.random() * menuDisplayWords.length)];
+          // Calculate actual length (excluding spaces for positioning)
+          const wordLength = randomWord.replace(/\s/g, '').length;
+          
+          // Find a valid position (avoid center, ensure word fits)
+          if (wordLength <= cols && rows > 0) {
+            const maxCol = cols - wordLength;
+            const centerCol = cols / 2;
+            const centerRow = rows / 2;
+            const avoidRadius = Math.min(cols, rows) * 0.25;
+            
+            let attempts = 0;
+            let foundPosition = false;
+            
+            while (attempts < 50 && !foundPosition) {
+              const col = Math.floor(Math.random() * (maxCol + 1));
+              const row = Math.floor(Math.random() * rows);
+              
+              // Check if position is not too close to center
+              const distFromCenter = Math.sqrt(
+                Math.pow(col + wordLength / 2 - centerCol, 2) + Math.pow(row - centerRow, 2)
+              );
+              
+              if (distFromCenter > avoidRadius) {
+                menuWordRef.current = {
+                  word: randomWord,
+                  startCol: col,
+                  startRow: row,
+                  visibleUntil: now + 2000 + Math.random() * 2000, // Visible for 2-4 seconds
+                };
+                lastMenuWordTimeRef.current = now;
+                foundPosition = true;
+              }
+              attempts++;
+            }
+          }
+        }
+        
+        // Update letters for current menu word
+        if (currentMenuWord) {
+          const menuWordColor = activePalette.hiddenWordColor || '#ffdc42';
+          let colOffset = 0;
+          for (let i = 0; i < currentMenuWord.word.length; i++) {
+            const char = currentMenuWord.word[i];
+            // Skip spaces (they don't take up a grid position)
+            if (char === ' ') {
+              colOffset++;
+              continue;
+            }
+            
+            const col = currentMenuWord.startCol + i - colOffset;
+            if (col >= 0 && col < cols && currentMenuWord.startRow >= 0 && currentMenuWord.startRow < rows) {
+              const index = currentMenuWord.startRow * cols + col;
+              if (index >= 0 && index < letters.length) {
+                const letter = letters[index];
+                // Only update if not part of a game word
+                if (!letter.isFrozen && (!letter.isVisibleWord || letter.visibleWordText === currentMenuWord.word)) {
+                  letter.char = char;
+                  letter.color = menuWordColor;
+                  letter.targetColor = menuWordColor;
+                  letter.colorProgress = 1;
+                  letter.isVisibleWord = true;
+                  letter.visibleWordText = currentMenuWord.word;
+                }
+              }
+            }
+          }
+        } else {
+          // Clear any expired menu word letters
+          letters.forEach(letter => {
+            if (letter.isVisibleWord && letter.visibleWordText && 
+                (menuDisplayWords?.includes(letter.visibleWordText) || false)) {
+              // Check if this was a menu word (not a game word)
+              if (!words.some(w => w.word === letter.visibleWordText)) {
+                letter.isVisibleWord = false;
+                letter.visibleWordText = undefined;
+              }
+            }
+          });
+        }
+      }
+
       // Reduce update rate on mobile for better performance
       const isMobile = window.innerWidth <= 768;
       const baseUpdateRate = glitchStateRef.current === 'intense' ? 0.3 : level.letterUpdateRate;
@@ -453,6 +626,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       const rect = canvas.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
+      
+      // Safety check: ensure canvas has valid dimensions
+      if (width <= 0 || height <= 0 || canvas.width <= 0 || canvas.height <= 0) {
+        return;
+      }
       const centerX = width / 2;
       const centerY = height / 2;
       const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
@@ -464,7 +642,14 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      ctx.font = `${FONT_SIZE}px monospace`;
+      // Get current sizing - always recalculate from current palette difficulty and level to ensure it's correct
+      const currentSizing = getTextSizingForDifficulty(activePalette.difficulty, level.level);
+      sizingRef.current = currentSizing; // Update ref for other uses
+      const charWidth = currentSizing.charWidth;
+      const charHeight = currentSizing.charHeight;
+      const fontSize = currentSizing.fontSize;
+      
+      ctx.font = `${fontSize}px monospace`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
 
@@ -479,8 +664,8 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
 
         const col = index % cols;
         const row = Math.floor(index / cols);
-        const baseX = col * CHAR_WIDTH;
-        const baseY = row * CHAR_HEIGHT;
+        const baseX = col * charWidth;
+        const baseY = row * charHeight;
 
         // Vortex effect
         const dx = baseX - centerX;
@@ -497,8 +682,8 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         const angle = Math.atan2(dy, dx);
         const rotation = normalizedDistance * 0.3;
 
-        const vortexX = -Math.cos(angle + rotation) * vortexPull * CHAR_WIDTH;
-        const vortexY = -Math.sin(angle + rotation) * vortexPull * CHAR_HEIGHT;
+        const vortexX = -Math.cos(angle + rotation) * vortexPull * charWidth;
+        const vortexY = -Math.sin(angle + rotation) * vortexPull * charHeight;
 
         const x = baseX + letter.offsetX + vortexX;
         const y = baseY + letter.offsetY + vortexY;
@@ -516,12 +701,29 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       });
 
       // Draw visible words - enhanced visibility with background boxes and outlines
+      const now = Date.now();
       words.forEach(word => {
         if (word.found || !word.isVisible) return;
         
         const baseColor = getWordColor();
         const vibrantColor = getVibrantColor(level.level, baseColor);
         const glowProps = getGlowProperties(level.level);
+        
+        // Check if word is clickable and calculate remaining time
+        const isClickable = word.clickableAt && word.clickableUntil && 
+                           now >= word.clickableAt && now <= word.clickableUntil;
+        const timeRemaining = isClickable && word.clickableUntil 
+          ? Math.max(0, (word.clickableUntil - now) / 1000) 
+          : 0;
+        
+        // Pulsing effect when clickable (more intense as time runs out)
+        const pulsePhase = (now % 1000) / 1000; // 0 to 1 over 1 second
+        const pulseIntensity = isClickable 
+          ? 0.8 + 0.2 * Math.sin(pulsePhase * Math.PI * 2) 
+          : 1.0;
+        const urgencyPulse = timeRemaining < 1.0 
+          ? 1.0 + 0.3 * (1.0 - timeRemaining) // More intense pulse when < 1 second
+          : 1.0;
         
         // Calculate word bounding box for background
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -545,8 +747,8 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           
           const col = index % cols;
           const row = Math.floor(index / cols);
-          const baseX = col * CHAR_WIDTH;
-          const baseY = row * CHAR_HEIGHT;
+          const baseX = col * charWidth;
+          const baseY = row * charHeight;
           
           // Apply vortex to visible words, but less strongly
           const dx = baseX - centerX;
@@ -559,17 +761,17 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           const vortexPull = vortexStrength * 0.3;
           const angle = Math.atan2(dy, dx);
           const rotation = normalizedDistance * 0.1;
-          const vortexX = -Math.cos(angle + rotation) * vortexPull * CHAR_WIDTH;
-          const vortexY = -Math.sin(angle + rotation) * vortexPull * CHAR_HEIGHT;
+          const vortexX = -Math.cos(angle + rotation) * vortexPull * charWidth;
+          const vortexY = -Math.sin(angle + rotation) * vortexPull * charHeight;
 
           const x = baseX + letter.offsetX + vortexX;
           const y = baseY + letter.offsetY + vortexY;
           
           wordPositions.push({ x, y, index });
           minX = Math.min(minX, x);
-          maxX = Math.max(maxX, x + CHAR_WIDTH);
+          maxX = Math.max(maxX, x + charWidth);
           minY = Math.min(minY, y);
-          maxY = Math.max(maxY, y + CHAR_HEIGHT);
+          maxY = Math.max(maxY, y + charHeight);
         }
         
         // Draw background box for the entire word (subtle dark background with glow)
@@ -586,79 +788,122 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           const g = parseInt(hex.substr(2, 2), 16);
           const b = parseInt(hex.substr(4, 2), 16);
           
-          // Draw background box with subtle glow
+          // Enhanced pulsing background when clickable
+          const bgAlpha = isClickable 
+            ? 0.2 + 0.1 * pulseIntensity * urgencyPulse
+            : 0.15;
+          
+          // Draw background box with subtle glow (pulsing when clickable)
           ctx.save();
-          ctx.globalAlpha = 0.15; // Subtle dark background
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.25)`;
-          ctx.shadowBlur = 15;
+          ctx.globalAlpha = bgAlpha;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.25 * pulseIntensity * urgencyPulse})`;
+          ctx.shadowBlur = isClickable ? 20 * urgencyPulse : 15;
           ctx.shadowColor = vibrantColor;
           ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
           ctx.restore();
           
-          // Draw border outline around word
+          // Draw border outline around word (pulsing when clickable)
           ctx.save();
           ctx.strokeStyle = vibrantColor;
-          ctx.lineWidth = 1.5;
-          ctx.globalAlpha = Math.max(0.4, Math.min(0.7, glowProps.opacity * 0.8));
-          ctx.shadowBlur = 8;
+          ctx.lineWidth = isClickable ? 2 * urgencyPulse : 1.5;
+          ctx.globalAlpha = Math.max(0.4, Math.min(0.9, glowProps.opacity * 0.8 * pulseIntensity * urgencyPulse));
+          ctx.shadowBlur = isClickable ? 12 * urgencyPulse : 8;
           ctx.shadowColor = vibrantColor;
           ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
           ctx.restore();
+          
+          // Draw countdown timer above word when clickable
+          if (isClickable && timeRemaining > 0) {
+            const timerText = timeRemaining.toFixed(1) + 's';
+            const timerX = boxX + boxWidth / 2;
+            const timerY = boxY - 20;
+            
+            // Timer background
+            ctx.save();
+            ctx.fillStyle = `rgba(0, 0, 0, 0.7)`;
+            ctx.fillRect(timerX - 25, timerY - 8, 50, 16);
+            ctx.restore();
+            
+            // Timer text with color based on urgency
+            const timerColor = timeRemaining < 1.0 
+              ? '#ff3333' // Red when < 1 second
+              : timeRemaining < 2.0 
+                ? '#ffaa00' // Orange when < 2 seconds
+                : vibrantColor; // Normal color
+            
+            ctx.save();
+            ctx.fillStyle = timerColor;
+            ctx.font = `bold ${Math.max(10, fontSize * 0.6)}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = timerColor;
+            ctx.fillText(timerText, timerX, timerY);
+            ctx.restore();
+          }
         }
         
         // Second pass: draw each letter with enhanced styling
         wordPositions.forEach(({ x, y, index }) => {
           const letter = letters[index];
           
-          // Multi-layer glow effect for vibrant appearance
+          // Enhanced pulsing glow when clickable
+          const effectiveGlowBlur = isClickable 
+            ? glowProps.shadowBlur * urgencyPulse * pulseIntensity
+            : glowProps.shadowBlur;
+          const effectiveOpacity = isClickable
+            ? glowProps.opacity * pulseIntensity * urgencyPulse
+            : glowProps.opacity;
+          
+          // Multi-layer glow effect for vibrant appearance (enhanced when clickable)
           if (glowProps.layers >= 4) {
             ctx.save();
-            ctx.shadowBlur = Math.max(0, glowProps.shadowBlur * (glowProps.intensityMultiplier || 1.0) * 1.2);
+            ctx.shadowBlur = Math.max(0, effectiveGlowBlur * (glowProps.intensityMultiplier || 1.0) * 1.2);
             ctx.shadowColor = vibrantColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.globalAlpha = Math.max(0, Math.min(1, glowProps.opacity * 0.2));
+            ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity * 0.2));
             ctx.fillStyle = vibrantColor;
-            ctx.font = `bold ${FONT_SIZE}px monospace`; // Bold for better visibility
+            ctx.font = `bold ${fontSize}px monospace`; // Bold for better visibility
             ctx.fillText(letter.char, x, y);
             ctx.restore();
           }
           
           if (glowProps.layers >= 3) {
             ctx.save();
-            ctx.shadowBlur = Math.max(0, glowProps.shadowBlur * (glowProps.intensityMultiplier || 1.0));
+            ctx.shadowBlur = Math.max(0, effectiveGlowBlur * (glowProps.intensityMultiplier || 1.0));
             ctx.shadowColor = vibrantColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.globalAlpha = Math.max(0, Math.min(1, glowProps.opacity * 0.3));
+            ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity * 0.3));
             ctx.fillStyle = vibrantColor;
-            ctx.font = `bold ${FONT_SIZE}px monospace`;
+            ctx.font = `bold ${fontSize}px monospace`;
             ctx.fillText(letter.char, x, y);
             ctx.restore();
           }
           
           if (glowProps.layers >= 2) {
             ctx.save();
-            ctx.shadowBlur = Math.max(0, glowProps.shadowBlurInner);
+            ctx.shadowBlur = Math.max(0, glowProps.shadowBlurInner * urgencyPulse);
             ctx.shadowColor = vibrantColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-            ctx.globalAlpha = Math.max(0, Math.min(1, glowProps.opacity * 0.6));
+            ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity * 0.6));
             ctx.fillStyle = vibrantColor;
-            ctx.font = `bold ${FONT_SIZE}px monospace`;
+            ctx.font = `bold ${fontSize}px monospace`;
             ctx.fillText(letter.char, x, y);
             ctx.restore();
           }
           
-          // Main letter with inner glow and bold styling
+          // Main letter with inner glow and bold styling (pulsing when clickable)
           ctx.save();
-          ctx.shadowBlur = Math.max(0, glowProps.shadowBlurInner * 0.5);
+          ctx.shadowBlur = Math.max(0, glowProps.shadowBlurInner * 0.5 * urgencyPulse);
           ctx.shadowColor = vibrantColor;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
-          ctx.globalAlpha = Math.max(0, Math.min(1, glowProps.opacity));
+          ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity));
           ctx.fillStyle = vibrantColor;
-          ctx.font = `bold ${FONT_SIZE}px monospace`; // Bold font for better visibility
+          ctx.font = `bold ${fontSize}px monospace`; // Bold font for better visibility
           ctx.fillText(letter.char, x, y);
           ctx.restore();
         });
@@ -670,8 +915,8 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
 
         const col = index % cols;
         const row = Math.floor(index / cols);
-        const x = col * CHAR_WIDTH + letter.offsetX;
-        const y = row * CHAR_HEIGHT + letter.offsetY;
+        const x = col * charWidth + letter.offsetX;
+        const y = row * charHeight + letter.offsetY;
 
         ctx.save();
         ctx.shadowBlur = 8;
@@ -755,18 +1000,38 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       const clickY = (clientY - rect.top);
 
       // Exclude UI areas from click detection (in logical pixel space)
-      // Top HUD area: ~120px = ~6 rows
-      // Bottom WordList area: ~200px = ~10 rows
-      const topExclusion = 120;
-      const bottomExclusion = 200;
+      // Use responsive exclusion zones based on screen width
+      const width = window.innerWidth || 800;
+      let topExclusion = 120; // Default desktop
+      let bottomExclusion = 200; // Default desktop
+      
+      if (width <= 360) {
+        // Small mobile devices
+        topExclusion = 80;
+        bottomExclusion = 120;
+      } else if (width <= 480) {
+        // Mobile devices
+        topExclusion = 90;
+        bottomExclusion = 140;
+      } else if (width <= 768) {
+        // Tablet devices
+        topExclusion = 100;
+        bottomExclusion = 180;
+      }
+      
       const canvasHeight = rect.height;
       
       if (clickY < topExclusion || clickY > canvasHeight - bottomExclusion) {
         return; // Click is in UI area, ignore
       }
 
-      const paddingX = CHAR_WIDTH * 2;
-      const paddingY = CHAR_HEIGHT * 2;
+      // Get current sizing (always up-to-date from ref)
+      const currentSizing = sizingRef.current;
+      const charWidth = currentSizing.charWidth;
+      const charHeight = currentSizing.charHeight;
+      
+      const paddingX = charWidth * 2;
+      const paddingY = charHeight * 2;
 
       // Check all visible words to see if click is on any word
       // Track whether we found a clickable word
@@ -775,10 +1040,10 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       for (const word of words) {
         if (!word.isVisible || word.found) continue; // Only check visible, unfound words
         
-        const textStartX = word.startCol * CHAR_WIDTH - paddingX;
-        const textEndX = (word.startCol + word.word.length) * CHAR_WIDTH + paddingX;
-        const textStartY = word.startRow * CHAR_HEIGHT - paddingY;
-        const textEndY = (word.startRow + 1) * CHAR_HEIGHT + paddingY;
+        const textStartX = word.startCol * charWidth - paddingX;
+        const textEndX = (word.startCol + word.word.length) * charWidth + paddingX;
+        const textStartY = word.startRow * charHeight - paddingY;
+        const textEndY = (word.startRow + 1) * charHeight + paddingY;
 
         // Check if click is within this word's bounds
         if (
@@ -891,10 +1156,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         glitchEndTimeRef.current = Date.now() + duration;
 
         const letters = lettersRef.current;
+        const currentSizing = sizingRef.current;
         letters.forEach(letter => {
           if (!letter.isFrozen) {
-            letter.targetOffsetX = (Math.random() - 0.5) * CHAR_WIDTH * 4;
-            letter.targetOffsetY = (Math.random() - 0.5) * CHAR_HEIGHT * 4;
+            letter.targetOffsetX = (Math.random() - 0.5) * currentSizing.charWidth * 4;
+            letter.targetOffsetY = (Math.random() - 0.5) * currentSizing.charHeight * 4;
             letter.offsetProgress = 0;
           }
         });
@@ -940,6 +1206,7 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         const letters = lettersRef.current;
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789Ω';
         const scrambleIntensity = 8; // Character widths to scatter (stronger than hover)
+        const currentSizing = sizingRef.current;
 
         letters.forEach(letter => {
           // Only scramble non-frozen letters (don't affect found words)
@@ -953,8 +1220,8 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             
             // Scatter position - random offset in all directions
             // Stronger scatter than hover glitch for more disorienting effect
-            letter.targetOffsetX = (Math.random() - 0.5) * CHAR_WIDTH * scrambleIntensity;
-            letter.targetOffsetY = (Math.random() - 0.5) * CHAR_HEIGHT * scrambleIntensity;
+            letter.targetOffsetX = (Math.random() - 0.5) * currentSizing.charWidth * scrambleIntensity;
+            letter.targetOffsetY = (Math.random() - 0.5) * currentSizing.charHeight * scrambleIntensity;
             letter.offsetProgress = 0;
           }
         });
@@ -1027,14 +1294,20 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         ref={containerRef}
         style={{
           position: 'absolute',
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           width: '100%',
           height: '100%',
           overflow: 'hidden',
           zIndex: 1,
+          /* Ensure container fills parent correctly */
+          boxSizing: 'border-box',
         }}
       >
         <canvas
+          key={`canvas-${activePalette.difficulty}-${activePalette.id}-${level.level}`}
           ref={canvasRef}
           onClick={handleCanvasClick}
           onTouchStart={handleTouchStart}

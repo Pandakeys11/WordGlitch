@@ -17,8 +17,13 @@
 }
 
 .icon {
-  font-size: 2.5rem;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: #61dca3;
   filter: drop-shadow(0 0 10px rgba(97, 220, 163, 0.5));
 }
 
@@ -54,7 +59,8 @@
   }
 
   .icon {
-    font-size: 2rem;
+    width: 40px;
+    height: 40px;
   }
 
   .name {

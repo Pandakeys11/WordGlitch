@@ -16,32 +16,42 @@
   pointer-events: none;
   backdrop-filter: blur(12px);
   min-height: 120px;
+  /* Safe area support */
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
 }
 
 .topBar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 0.5rem;
   pointer-events: auto;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .topBarActions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .statGroup {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .stat {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .label {
@@ -49,6 +59,7 @@
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .value {
@@ -56,6 +67,9 @@
   font-weight: bold;
   color: #fff;
   font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .combo {
@@ -87,6 +101,8 @@
   color: #fff;
   width: 3rem;
   height: 3rem;
+  min-width: 3rem;
+  min-height: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,6 +110,8 @@
   transition: all 0.2s;
   backdrop-filter: blur(8px);
   padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .actionButton .icon,
@@ -102,6 +120,7 @@
   height: 20px;
   stroke-width: 2;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .actionButton:hover,
@@ -128,6 +147,7 @@
   border-radius: 999px;
   overflow: hidden;
   pointer-events: auto;
+  flex-shrink: 0;
 }
 
 .progressFill {
@@ -147,31 +167,160 @@
   color: #fff;
   font-weight: bold;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .hud {
     padding: 0.75rem;
+    min-height: 100px;
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+
+  .topBar {
+    gap: 0.5rem;
+    align-items: flex-start;
   }
 
   .statGroup {
-    gap: 1rem;
+    gap: 0.75rem;
+    flex: 1 1 auto;
+  }
+
+  .stat {
+    gap: 0.2rem;
+  }
+
+  .label {
+    font-size: 0.65rem;
   }
 
   .value {
     font-size: 1rem;
   }
 
+  .topBarActions {
+    gap: 0.5rem;
+  }
+
   .actionButton,
   .pauseButton {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 
   .actionButton .icon,
   .pauseButton .icon {
     width: 18px;
     height: 18px;
+  }
+
+  .progressText {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hud {
+    padding: 0.5rem;
+    min-height: 90px;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .topBar {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .statGroup {
+    gap: 0.5rem;
+    order: 2;
+  }
+
+  .topBarActions {
+    order: 1;
+    justify-content: flex-end;
+    align-self: flex-end;
+  }
+
+  .stat {
+    gap: 0.15rem;
+  }
+
+  .label {
+    font-size: 0.6rem;
+  }
+
+  .value {
+    font-size: 0.9rem;
+  }
+
+  .actionButton,
+  .pauseButton {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+
+  .actionButton .icon,
+  .pauseButton .icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .progressBar {
+    height: 0.4rem;
+  }
+
+  .progressText {
+    font-size: 0.65rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud {
+    min-height: 80px;
+    padding: 0.5rem;
+  }
+
+  .topBar {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .statGroup {
+    gap: 0.75rem;
+  }
+
+  .label {
+    font-size: 0.6rem;
+  }
+
+  .value {
+    font-size: 0.85rem;
+  }
+
+  .actionButton,
+  .pauseButton {
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+  }
+
+  .actionButton .icon,
+  .pauseButton .icon {
+    width: 16px;
+    height: 16px;
   }
 }
 

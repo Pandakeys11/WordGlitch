@@ -1,18 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Level, GameWord, GameScore, GameSession } from '@/types/game';
 import LetterGlitch, { LetterGlitchHandle } from './LetterGlitch';
 import GameHUD from './GameHUD';
 import WordList from './WordList';
 import GameOverModal from './GameOverModal';
-import { initializeLevel, generateWords, calculateScore, calculateFinalScore } from '@/lib/game/gameEngine';
+import { initializeLevel, generateWords, calculateFinalScore } from '@/lib/game/gameEngine';
+import { calculateComboMultiplier } from '@/lib/game/scoring';
+import { getDifficultyMultiplier } from '@/lib/colorPalettes';
 import { WordManager } from '@/lib/game/wordManager';
-import { updateStats, saveScore } from '@/lib/storage/gameStorage';
+import { updateStats, saveScore, loadProfile } from '@/lib/storage/gameStorage';
+import { syncCurrencyWithTotalScore } from '@/lib/antFarm/currency';
 import { unlockLevel } from '@/lib/game/levelSystem';
-import { ACHIEVEMENTS, CHAR_WIDTH, CHAR_HEIGHT } from '@/lib/constants';
+import { ACHIEVEMENTS } from '@/lib/constants';
 import { saveAchievement, hasAchievement, loadSettings, saveSettings } from '@/lib/storage/gameStorage';
-import { getPalette, DEFAULT_PALETTE_ID, ColorPalette } from '@/lib/colorPalettes';
+import { getPalette, DEFAULT_PALETTE_ID, ColorPalette, COLOR_PALETTES, PaletteDifficulty } from '@/lib/colorPalettes';
+import { getTextSizingForDifficulty } from '@/lib/game/difficulty';
+import { getMandatoryPaletteDifficulty, hasMandatoryPalette } from '@/lib/constants';
+import { LockIcon } from '@/components/UI/GameIcons';
 import styles from './GameScreen.module.css';
 
 interface GameScreenProps {
@@ -41,10 +47,27 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
   // Initialize refs to match initial state
   const attemptsRef = useRef<number>(0);
   const correctFindsRef = useRef<number>(0);
-  const [currentPalette, setCurrentPalette] = useState<ColorPalette>(() => {
+  // Check if this level requires a mandatory palette
+  const mandatoryDifficulty = getMandatoryPaletteDifficulty(level);
+  const [isMandatoryLevel, setIsMandatoryLevel] = useState(hasMandatoryPalette(level));
+  const [mandatoryPaletteDifficulty, setMandatoryPaletteDifficulty] = useState<PaletteDifficulty | null>(mandatoryDifficulty);
+  
+  // Get initial palette - if mandatory, use first palette of required difficulty
+  const getInitialPalette = (): ColorPalette => {
+    if (mandatoryDifficulty) {
+      // Find first palette with required difficulty
+      const requiredPalette = COLOR_PALETTES.find(p => p.difficulty === mandatoryDifficulty);
+      if (requiredPalette) {
+        return requiredPalette;
+      }
+    }
+    // Otherwise use saved preference
     const settings = loadSettings();
     return getPalette(settings.colorPalette || DEFAULT_PALETTE_ID);
-  });
+  };
+
+  const [currentPalette, setCurrentPalette] = useState<ColorPalette>(getInitialPalette);
+  const [paletteLocked, setPaletteLocked] = useState(isMandatoryLevel);
 
   const glitchRef = useRef<LetterGlitchHandle>(null);
   const sessionRef = useRef<GameSession | null>(null);
@@ -55,8 +78,66 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
   const pausedTimeRef = useRef<number>(0);
   const pauseStartRef = useRef<number | null>(null);
 
+  // Helper function to calculate responsive exclusion zones
+  const getExclusionZones = useCallback(() => {
+    const width = typeof window !== 'undefined' ? window.innerWidth : 800;
+    let topExclusion = 120; // Default desktop
+    let bottomExclusion = 200; // Default desktop
+    
+    if (width <= 360) {
+      // Small mobile devices
+      topExclusion = 80;
+      bottomExclusion = 120;
+    } else if (width <= 480) {
+      // Mobile devices
+      topExclusion = 90;
+      bottomExclusion = 140;
+    } else if (width <= 768) {
+      // Tablet devices
+      topExclusion = 100;
+      bottomExclusion = 180;
+    }
+    
+    // Add safe area insets
+    const safeAreaTop = typeof window !== 'undefined' 
+      ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '0', 10) || 0
+      : 0;
+    const safeAreaBottom = typeof window !== 'undefined'
+      ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '0', 10) || 0
+      : 0;
+    
+    return {
+      top: topExclusion + safeAreaTop,
+      bottom: bottomExclusion + safeAreaBottom,
+    };
+  }, []);
+
   // Initialize game
   useEffect(() => {
+    // Check mandatory palette requirement for this level
+    const mandatory = getMandatoryPaletteDifficulty(level);
+    setIsMandatoryLevel(mandatory !== null);
+    setMandatoryPaletteDifficulty(mandatory);
+    setPaletteLocked(mandatory !== null);
+    
+    // Determine the palette to use for this level
+    let paletteToUse = currentPalette;
+    
+    // If mandatory, ensure palette matches requirement
+    if (mandatory) {
+      const requiredPalette = COLOR_PALETTES.find(p => p.difficulty === mandatory);
+      if (requiredPalette) {
+        paletteToUse = requiredPalette;
+        // Update state if different
+        if (currentPalette.difficulty !== mandatory) {
+          setCurrentPalette(requiredPalette);
+          // Save the required palette to settings for consistency
+          const settings = loadSettings();
+          saveSettings({ ...settings, colorPalette: requiredPalette.id });
+        }
+      }
+    }
+    
     // Reset all game state when level changes
     setScore(0);
     setCombo(0);
@@ -75,30 +156,42 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     const levelConfig = initializeLevel(level);
     setCurrentLevel(levelConfig);
     
-    // Get canvas dimensions (approximate) - use window size or defaults
-    const cols = Math.floor((window.innerWidth || 800) / CHAR_WIDTH);
-    const rows = Math.floor((window.innerHeight || 600) / CHAR_HEIGHT);
+    // Get dynamic text sizing based on palette difficulty and level (auto-reduces after level 14)
+    const textSizing = getTextSizingForDifficulty(paletteToUse.difficulty, level);
+    const charWidth = textSizing.charWidth;
+    const charHeight = textSizing.charHeight;
     
-    // Calculate UI exclusion zones (top HUD ~120px, bottom WordList ~200px)
-    const topExclusionRows = Math.ceil(120 / CHAR_HEIGHT); // Top HUD area
-    const bottomExclusionRows = Math.ceil(200 / CHAR_HEIGHT); // Bottom WordList area
+    // Get canvas dimensions (approximate) - use window size or defaults
+    const cols = Math.floor((window.innerWidth || 800) / charWidth);
+    const rows = Math.floor((window.innerHeight || 600) / charHeight);
+    
+    // Calculate responsive UI exclusion zones using helper function
+    const exclusionZones = getExclusionZones();
+    const topExclusionRows = Math.ceil(exclusionZones.top / charHeight);
+    const bottomExclusionRows = Math.ceil(exclusionZones.bottom / charHeight);
     
     const generatedWords = generateWords(
       levelConfig, 
-      cols * CHAR_WIDTH, 
-      rows * CHAR_HEIGHT,
-      topExclusionRows,
-      bottomExclusionRows
-    );
-    
-    // Initialize word manager with level
-    wordManagerRef.current = new WordManager(
-      generatedWords,
-      cols * CHAR_WIDTH,
-      rows * CHAR_HEIGHT,
+      cols * charWidth, 
+      rows * charHeight,
       topExclusionRows,
       bottomExclusionRows,
-      level
+      charWidth,
+      charHeight,
+      paletteToUse.difficulty
+    );
+    
+    // Initialize word manager with level and dynamic sizing
+    wordManagerRef.current = new WordManager(
+      generatedWords,
+      cols * charWidth,
+      rows * charHeight,
+      topExclusionRows,
+      bottomExclusionRows,
+      level,
+      paletteToUse.difficulty,
+      charWidth,
+      charHeight
     );
     
     setWords(generatedWords);
@@ -142,7 +235,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         clearInterval(wordUpdateRef.current);
       }
     };
-  }, [level]);
+  }, [level, getExclusionZones]);
 
   // Sync WordManager dimensions with actual canvas dimensions
   useEffect(() => {
@@ -152,9 +245,13 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
       const dimensions = glitchRef.current?.getCanvasDimensions();
       if (!dimensions || !wordManagerRef.current) return;
       
-      // Calculate UI exclusion zones (top HUD ~120px, bottom WordList ~200px)
-      const topExclusionRows = Math.ceil(120 / CHAR_HEIGHT);
-      const bottomExclusionRows = Math.ceil(200 / CHAR_HEIGHT);
+      // Calculate responsive UI exclusion zones
+      const exclusionZones = getExclusionZones();
+          // Get dynamic text sizing based on current palette difficulty and level
+          const textSizing = getTextSizingForDifficulty(currentPalette.difficulty, level);
+          const charHeight = textSizing.charHeight;
+      const topExclusionRows = Math.ceil(exclusionZones.top / charHeight);
+      const bottomExclusionRows = Math.ceil(exclusionZones.bottom / charHeight);
       
       // Update WordManager with actual canvas dimensions
       wordManagerRef.current.updateDimensions(
@@ -167,9 +264,14 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     
     // Sync immediately and on resize
     syncDimensions();
-    const syncInterval = setInterval(syncDimensions, 500); // Sync every 500ms
+    const resizeHandler = () => syncDimensions();
+    window.addEventListener('resize', resizeHandler);
+    const syncInterval = setInterval(syncDimensions, 500); // Sync every 500ms as backup
     
-    return () => clearInterval(syncInterval);
+    return () => {
+      window.removeEventListener('resize', resizeHandler);
+      clearInterval(syncInterval);
+    };
   }, [level]);
 
   // Word scramble effect for levels 15+ (random rare scrambles)
@@ -200,8 +302,27 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         // Sync dimensions first
         const dimensions = glitchRef.current?.getCanvasDimensions();
         if (dimensions && wordManagerRef.current) {
-          const topExclusionRows = Math.ceil(120 / CHAR_HEIGHT);
-          const bottomExclusionRows = Math.ceil(200 / CHAR_HEIGHT);
+          const exclusionZones = (() => {
+            const width = window.innerWidth || 800;
+            let topExclusion = 120;
+            let bottomExclusion = 200;
+            if (width <= 360) {
+              topExclusion = 80;
+              bottomExclusion = 120;
+            } else if (width <= 480) {
+              topExclusion = 90;
+              bottomExclusion = 140;
+            } else if (width <= 768) {
+              topExclusion = 100;
+              bottomExclusion = 180;
+            }
+            return { top: topExclusion, bottom: bottomExclusion };
+          })();
+          // Get dynamic text sizing based on current palette difficulty and level
+          const textSizing = getTextSizingForDifficulty(currentPalette.difficulty, level);
+          const charHeight = textSizing.charHeight;
+          const topExclusionRows = Math.ceil(exclusionZones.top / charHeight);
+          const bottomExclusionRows = Math.ceil(exclusionZones.bottom / charHeight);
           wordManagerRef.current.updateDimensions(
             dimensions.width,
             dimensions.height,
@@ -253,6 +374,9 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     // Update every 100ms for smooth timing
     wordUpdateRef.current = setInterval(() => {
       if (wordManagerRef.current) {
+        // Update combo multiplier for faster word appearances at higher combos
+        wordManagerRef.current.setComboMultiplier(combo);
+        
         const updatedWords = wordManagerRef.current.updateWords();
         const visibleCount = updatedWords.filter(w => w.isVisible && !w.found).length;
         setWords(updatedWords);
@@ -336,59 +460,62 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
   const handleWordFound = useCallback((word: string, isCorrectClick: boolean) => {
     if (!wordManagerRef.current) return;
     
-    // Always increment attempts (every click counts)
+    // Always increment attempts exactly once for every click
     const newAttempts = attemptsRef.current + 1;
     attemptsRef.current = newAttempts;
     setAttempts(newAttempts);
     
-    // If it's not a correct click, it's a miss - reset combo and return
+    // If it's not a correct click, it's a miss - but don't reset combo
+    // Combo is based on total words found, not consecutive finds
     if (!isCorrectClick || !word) {
-      setCombo(0);
       return;
     }
     
+    // For correct clicks, validate and process the word
     // Use functional update to get latest words state
     setWords(prevWords => {
       // Find the word in current state
       const currentWord = prevWords.find(w => w.word === word && !w.found);
       if (!currentWord || !wordManagerRef.current?.isWordClickable(currentWord)) {
-        // Word not found or not clickable - reset combo
-        setCombo(0);
+        // Word not found or not clickable - this was a miss (attempt already counted)
+        // Don't reset combo - it's based on total words found, not consecutive
         return prevWords; // Return unchanged
       }
 
       // Mark word as found in WordManager first (synchronous update)
+      // This also triggers faster next word appearance
       const wasFound = wordManagerRef.current.markWordFound(word);
       if (!wasFound) {
-        // Word couldn't be marked as found - reset combo
-        setCombo(0);
+        // Word couldn't be marked as found - this was a miss (attempt already counted)
+        // Don't reset combo - it's based on total words found, not consecutive
         return prevWords; // Return unchanged
       }
 
-      // Calculate score using ref values for accuracy calculation
-      const wordScore = calculateScore(
-        currentWord,
-        timeRemaining,
-        combo,
-        attemptsRef.current, // Use current ref value
-        correctFindsRef.current + 1, // Use current ref value + 1 for this find
-        currentPalette.difficulty
-      );
-
-      // Update all state immediately (these are batched by React)
-      setScore(prev => prev + wordScore.finalScore);
-      setCombo(prev => {
-        const newCombo = prev + 1;
-        setMaxCombo(prevMax => Math.max(prevMax, newCombo));
-        return newCombo;
-      });
-      // Update correctFinds ref FIRST (synchronously) before state update
-      // This ensures refs are always current when handleGameOver is called
+      // Valid correct click - increment correctFinds (attempts already incremented above)
       const newCorrectFinds = correctFindsRef.current + 1;
       correctFindsRef.current = newCorrectFinds;
-      
-      // Then update state (these are batched by React)
       setCorrectFinds(newCorrectFinds);
+
+      // Calculate combo based on total words found (starts after 3 words)
+      // Combo = wordsFound - 3 (so 0 for first 3 words, then 1, 2, 3, etc.)
+      const wordsFoundAfterMarking = prevWords.filter(w => w.found).length + 1; // +1 because we're about to mark this word as found
+      const newCombo = Math.max(0, wordsFoundAfterMarking - 3); // Combo starts after 3 words
+      
+      // Update combo state
+      setCombo(newCombo);
+      setMaxCombo(prevMax => Math.max(prevMax, newCombo));
+
+      // Calculate score (accuracy is not used here, only calculated at game end)
+      const basePoints = currentWord.points;
+      const timeBonus = timeRemaining ? Math.floor(timeRemaining * 3) : 0; // Enhanced: 3 points per second
+      const comboMultiplier = calculateComboMultiplier(newCombo); // Use new combo value
+      const difficultyMultiplier = getDifficultyMultiplier(currentPalette.difficulty);
+      const wordScore = Math.floor(
+        ((basePoints + timeBonus) * comboMultiplier) * difficultyMultiplier
+      );
+
+      // Update score
+      setScore(prev => prev + wordScore);
 
       // Trigger glitch effect
       glitchRef.current?.triggerIntenseGlitch(undefined, 200);
@@ -400,9 +527,19 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
           : w
       );
     });
-  }, [timeRemaining, combo, attempts, correctFinds, currentPalette.difficulty]);
+  }, [timeRemaining, currentPalette.difficulty]);
 
   const handleGameOver = (victory: boolean) => {
+    // Check if this is a mandatory level and palette matches requirement
+    if (victory && mandatoryPaletteDifficulty && currentPalette.difficulty !== mandatoryPaletteDifficulty) {
+      // Don't allow victory if wrong palette on mandatory level
+      alert(`This level requires a ${mandatoryPaletteDifficulty} difficulty palette. Please select the correct palette to proceed.`);
+      setIsVictory(false);
+      setGameOver(false);
+      setIsPaused(false);
+      return;
+    }
+    
     setIsVictory(victory);
     setGameOver(true);
     setIsPaused(true);
@@ -441,14 +578,19 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
       ? (currentCorrectFinds / currentAttempts) * 100 
       : 100;
     
+    // Calculate final combo based on words found (starts after 3 words)
+    const wordsFound = words.filter(w => w.found).length;
+    const finalCombo = Math.max(0, wordsFound - 3);
+    
     const final = calculateFinalScore(
       words,
       timeRemaining,
-      maxCombo,
+      finalCombo, // Pass calculated combo based on words found (0 for first 3, then 1, 2, 3, etc.)
       currentAttempts,
       currentCorrectFinds,
       levelTime,
-      currentPalette.difficulty
+      currentPalette.difficulty,
+      level // Pass level for level-based multipliers
     );
     
     // Override accuracy with calculated value to ensure it's correct
@@ -456,14 +598,14 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
 
     setFinalScore(final);
 
-    // Update session
-    if (sessionRef.current) {
-      sessionRef.current.endTime = Date.now();
-      sessionRef.current.score = final;
-      sessionRef.current.combo = combo;
-      sessionRef.current.maxCombo = maxCombo;
-      sessionRef.current.attempts = currentAttempts;
-      sessionRef.current.correctFinds = currentCorrectFinds;
+      // Update session
+      if (sessionRef.current) {
+        sessionRef.current.endTime = Date.now();
+        sessionRef.current.score = final;
+        sessionRef.current.combo = finalCombo; // Use calculated combo based on words found
+        sessionRef.current.maxCombo = finalCombo; // Max combo is the same as current combo (based on total words)
+        sessionRef.current.attempts = currentAttempts;
+        sessionRef.current.correctFinds = currentCorrectFinds;
 
       // Calculate total cumulative time and score: existing totals + current level
       // This ensures we show the correct totals even before profile is updated
@@ -492,6 +634,12 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         accuracy: final.accuracy,
         levelTime: final.levelTime, // Include level time for ranking
       });
+      
+      // Sync currency with updated total score (20:1 ratio)
+      const updatedProfile = loadProfile();
+      if (updatedProfile) {
+        syncCurrencyWithTotalScore(updatedProfile.totalScore);
+      }
 
       // Unlock next level if victory
       if (victory) {
@@ -538,8 +686,11 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
       }
     }
 
-    // Combo master
-    if (maxCombo >= 10 && !hasAchievement('combo_master')) {
+    // Combo master - check if player found 13+ words (combo of 10+)
+    // Combo = wordsFound - 3, so combo >= 10 means wordsFound >= 13
+    const wordsFound = words.filter(w => w.found).length;
+    const finalCombo = Math.max(0, wordsFound - 3);
+    if (finalCombo >= 10 && !hasAchievement('combo_master')) {
       saveAchievement({ ...ACHIEVEMENTS.combo_master, unlockedAt: Date.now() });
     }
 
@@ -565,6 +716,12 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
 
   const handleContinue = () => {
     if (isVictory) {
+      // Double-check palette requirement before allowing progression
+      if (mandatoryPaletteDifficulty && currentPalette.difficulty !== mandatoryPaletteDifficulty) {
+        alert(`This level requires a ${mandatoryPaletteDifficulty} difficulty palette. Please select the correct palette to proceed.`);
+        return;
+      }
+      
       const nextLevel = level + 1;
       // Unlock next level if not already unlocked
       unlockLevel(nextLevel, finalScore?.finalScore || 0);
@@ -592,12 +749,20 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
   };
 
   const handlePaletteChange = (paletteId: string) => {
+    // Prevent palette change on mandatory levels
+    if (paletteLocked && mandatoryPaletteDifficulty) {
+      const newPalette = getPalette(paletteId);
+      // Only allow change if new palette matches required difficulty
+      if (newPalette.difficulty !== mandatoryPaletteDifficulty) {
+        alert(`This level requires a ${mandatoryPaletteDifficulty} difficulty palette. You cannot change to a different difficulty.`);
+        return;
+      }
+    }
+    
     const newPalette = getPalette(paletteId);
     setCurrentPalette(newPalette);
     const settings = loadSettings();
     saveSettings({ ...settings, colorPalette: paletteId });
-    // Trigger glitch effect on palette change
-    glitchRef.current?.triggerIntenseGlitch(newPalette.glitchColors, 300);
   };
 
   const foundWords = words.filter(w => w.found).length;
@@ -625,8 +790,17 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         onHome={handleHome}
         onRestart={handleRestart}
         currentPaletteId={currentPalette.id}
-        onPaletteChange={handlePaletteChange}
       />
+      {isMandatoryLevel && mandatoryPaletteDifficulty && (
+        <div className={styles.mandatoryPaletteNotice}>
+          <div className={styles.mandatoryNoticeContent}>
+            <LockIcon size={20} className={styles.mandatoryIcon} />
+            <span className={styles.mandatoryText}>
+              Boss Level: Requires <strong>{mandatoryPaletteDifficulty}</strong> difficulty palette
+            </span>
+          </div>
+        </div>
+      )}
       <WordList words={words} palette={currentPalette} isPaused={isPaused} />
       {gameOver && finalScore && (
         <GameOverModal

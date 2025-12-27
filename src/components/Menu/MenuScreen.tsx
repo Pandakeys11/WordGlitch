@@ -8,7 +8,8 @@ import { loadProfile, loadSettings, saveSettings } from '@/lib/storage/gameStora
 import { initializeLevel } from '@/lib/game/difficulty';
 import { getPalette, DEFAULT_PALETTE_ID, ColorPalette } from '@/lib/colorPalettes';
 import PaletteToggle from '../UI/PaletteToggle';
-import { EyeIcon, EyeOffIcon } from '../UI/GameIcons';
+import { EyeIcon, EyeOffIcon, PlayIcon, UserIcon, TrophyIcon, BookIcon, ZapIcon } from '../UI/GameIcons';
+import { getCurrencyBalance, syncCurrencyWithTotalScore } from '@/lib/antFarm/currency';
 import styles from './MenuScreen.module.css';
 
 interface MenuScreenProps {
@@ -31,8 +32,29 @@ export default function MenuScreen({
     const settings = loadSettings();
     return getPalette(settings.colorPalette || DEFAULT_PALETTE_ID);
   });
+  const [currency, setCurrency] = useState(getCurrencyBalance());
   const glitchRef = useRef<LetterGlitchHandle>(null);
   const screensaverIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync currency with total score on mount and update periodically
+  useEffect(() => {
+    // Sync currency with total score when menu loads
+    const profile = loadProfile();
+    if (profile) {
+      syncCurrencyWithTotalScore(profile.totalScore);
+    }
+    
+    // Update currency display periodically
+    const interval = setInterval(() => {
+      // Re-sync to ensure currency matches total score
+      const currentProfile = loadProfile();
+      if (currentProfile) {
+        syncCurrencyWithTotalScore(currentProfile.totalScore);
+      }
+      setCurrency(getCurrencyBalance());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const level = getCurrentLevel();
@@ -137,6 +159,7 @@ export default function MenuScreen({
           onWordFound={() => {}}
           isPaused={false}
           palette={currentPalette}
+          menuDisplayWords={['WORD GLITCH', 'by PGT']}
         />
       </div>
 
@@ -202,6 +225,20 @@ export default function MenuScreen({
               </span>
             </div>
           )}
+          <div 
+            className={styles.stat}
+            style={{
+              borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
+            }}
+          >
+            <span className={styles.statLabel}>Currency</span>
+            <span 
+              className={styles.statValue}
+              style={{ color: '#ff0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              {currency} <ZapIcon size={18} />
+            </span>
+          </div>
         </div>
 
         <div className={styles.buttons}>
@@ -209,7 +246,7 @@ export default function MenuScreen({
             label="Play"
             onClick={onPlay}
             variant="primary"
-            icon="▶"
+            icon={<PlayIcon size={24} />}
             onMouseEnter={handleButtonHover}
             onMouseLeave={handleButtonLeave}
             palette={currentPalette}
@@ -218,7 +255,7 @@ export default function MenuScreen({
             label="Profile"
             onClick={onProfile}
             variant="secondary"
-            icon="👤"
+            icon={<UserIcon size={24} />}
             onMouseEnter={handleButtonHover}
             onMouseLeave={handleButtonLeave}
             palette={currentPalette}
@@ -227,16 +264,16 @@ export default function MenuScreen({
             label="Leaderboard"
             onClick={onLeaderboard}
             variant="secondary"
-            icon="🏆"
+            icon={<TrophyIcon size={24} />}
             onMouseEnter={handleButtonHover}
             onMouseLeave={handleButtonLeave}
             palette={currentPalette}
           />
           <MenuButton
-            label="Settings"
+            label="Rules"
             onClick={onSettings}
             variant="tertiary"
-            icon="⚙"
+            icon={<BookIcon size={24} />}
             onMouseEnter={handleButtonHover}
             onMouseLeave={handleButtonLeave}
             palette={currentPalette}

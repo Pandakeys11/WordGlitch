@@ -146,6 +146,10 @@
   .content {
     gap: 0.75rem;
     padding: 0.5rem 1rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
   }
 
   .header {
@@ -176,25 +180,34 @@
   .buttons {
     gap: 0.5rem;
   }
+
+  .paletteSection {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
   .content {
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   }
 
   .header {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.75rem;
   }
 
   .title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     letter-spacing: 0.08em;
+    line-height: 1.2;
   }
 
   .subtitle {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   .stats {
@@ -205,11 +218,73 @@
 
   .stat {
     width: 100%;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .statLabel {
+    font-size: 0.8rem;
+  }
+
+  .statValue {
+    font-size: 0.9rem;
   }
 
   .buttons {
     gap: 0.5rem;
+  }
+
+  .paletteSection {
+    max-width: 100%;
+    margin-top: 0.25rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+  .content {
+    gap: 0.5rem;
+    padding: 0.5rem;
+    max-height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .header {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    letter-spacing: 0.08em;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+  }
+
+  .stats {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .stat {
+    padding: 0.4rem 0.75rem;
+  }
+
+  .statLabel {
+    font-size: 0.7rem;
+  }
+
+  .statValue {
+    font-size: 0.85rem;
+  }
+
+  .buttons {
+    gap: 0.4rem;
+  }
+
+  .paletteSection {
+    margin-top: 0.25rem;
   }
 }
 
@@ -285,10 +360,12 @@
 
 @media (max-width: 768px) {
   .hideToggle {
-    top: 0.75rem;
-    right: 0.75rem;
+    top: max(0.75rem, env(safe-area-inset-top, 0px));
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
     width: 2.5rem;
     height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 
   .toggleIcon {
@@ -299,10 +376,12 @@
 
 @media (max-width: 480px) {
   .hideToggle {
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 2.25rem;
-    height: 2.25rem;
+    top: max(0.5rem, env(safe-area-inset-top, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
   }
 
   .toggleIcon {
