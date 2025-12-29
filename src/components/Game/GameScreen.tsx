@@ -1155,18 +1155,23 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
                 // Update WordManager with only hangman words and restart word appearance system
                 if (hangmanWordsOnly.length > 0) {
                   // Get current canvas dimensions - ensure canvas is ready
-                  const canvas = glitchRef.current?.canvas;
                   const dimensions = glitchRef.current?.getCanvasDimensions();
                   
-                  if (canvas && dimensions && dimensions.width > 0 && dimensions.height > 0) {
-                    const currentSizing = sizingRef.current;
+                  if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
                     const exclusionZones = getExclusionZones();
+                    
+                    // Get dynamic text sizing based on current palette difficulty and level
+                    const currentSizing = getTextSizingForDifficulty(
+                      currentPalette.difficulty, 
+                      level,
+                      currentPalette.textSizeMultiplier
+                    );
                     
                     // Validate dimensions before creating WordManager
                     const canvasWidth = dimensions.width;
                     const canvasHeight = dimensions.height;
-                    const charWidth = currentSizing?.charWidth || 12;
-                    const charHeight = currentSizing?.charHeight || 20;
+                    const charWidth = currentSizing.charWidth;
+                    const charHeight = currentSizing.charHeight;
                     const topExclusionRows = Math.max(0, Math.ceil(exclusionZones.top / charHeight));
                     const bottomExclusionRows = Math.max(0, Math.ceil(exclusionZones.bottom / charHeight));
                     
@@ -1260,10 +1265,15 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
                         const retryDimensions = glitchRef.current?.getCanvasDimensions();
                         if (retryDimensions && retryDimensions.width > 0 && retryDimensions.height > 0) {
                           // Re-run the WordManager creation logic
-                          const currentSizing = sizingRef.current;
+                          // Get dynamic text sizing based on current palette difficulty and level
+                          const currentSizing = getTextSizingForDifficulty(
+                            currentPalette.difficulty, 
+                            level,
+                            currentPalette.textSizeMultiplier
+                          );
                           const exclusionZones = getExclusionZones();
-                          const charWidth = currentSizing?.charWidth || 12;
-                          const charHeight = currentSizing?.charHeight || 20;
+                          const charWidth = currentSizing.charWidth;
+                          const charHeight = currentSizing.charHeight;
                           const topExclusionRows = Math.max(0, Math.ceil(exclusionZones.top / charHeight));
                           const bottomExclusionRows = Math.max(0, Math.ceil(exclusionZones.bottom / charHeight));
                           
