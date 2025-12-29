@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { MusicPlayerProvider } from '@/contexts/MusicPlayerContext';
 
 export const metadata: Metadata = {
   title: 'Word Glitch - Find Words in the Chaos',
@@ -28,7 +29,11 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#000000" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
-      <body>{children}</body>
+      <body>
+        <MusicPlayerProvider>
+          {children}
+        </MusicPlayerProvider>
+      </body>
     </html>
   );
 }

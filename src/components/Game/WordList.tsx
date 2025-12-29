@@ -30,6 +30,34 @@ export default function WordList({ words, palette, isPaused = false }: WordListP
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
+  // Get word box style based on state
+  const getWordBoxStyle = (isFound: boolean): React.CSSProperties => {
+    if (isFound) {
+      const primaryColor = currentPalette.hiddenWordColor;
+      return {
+        background: `linear-gradient(135deg, ${hexToRgba(primaryColor, 0.3)} 0%, ${hexToRgba(primaryColor, 0.2)} 50%, ${hexToRgba(primaryColor, 0.25)} 100%)`,
+        borderColor: `${hexToRgba(primaryColor, 0.5)} ${hexToRgba(primaryColor, 0.3)} ${hexToRgba(primaryColor, 0.7)} ${hexToRgba(primaryColor, 0.3)}`,
+        boxShadow: `
+          0 0 15px ${hexToRgba(primaryColor, 0.3)},
+          0 2px 8px ${hexToRgba('#000000', 0.3)},
+          inset 0 1px 0 ${hexToRgba('#ffffff', 0.15)},
+          inset 0 -1px 0 ${hexToRgba('#000000', 0.2)}
+        `,
+      };
+    } else {
+      const primaryColor = currentPalette.uiColors.primary;
+      return {
+        background: `rgba(0, 0, 0, 0.2)`,
+        borderColor: `${hexToRgba(primaryColor, 0.3)} ${hexToRgba(primaryColor, 0.15)} ${hexToRgba('#000000', 0.4)} ${hexToRgba(primaryColor, 0.15)}`,
+        boxShadow: `
+          0 2px 8px ${hexToRgba('#000000', 0.3)},
+          inset 0 1px 0 ${hexToRgba('#ffffff', 0.15)},
+          inset 0 -1px 0 ${hexToRgba('#000000', 0.2)}
+        `,
+      };
+    }
+  };
+
   return (
     <div className={styles.wordList}>
       <div className={styles.wordsContent}>
@@ -37,7 +65,11 @@ export default function WordList({ words, palette, isPaused = false }: WordListP
           <h3 className={styles.sectionTitle}>Find These Words</h3>
           <div className={styles.words}>
             {activeWords.map((word) => (
-              <div key={word.word} className={styles.word}>
+              <div 
+                key={word.word} 
+                className={styles.word}
+                style={getWordBoxStyle(false)}
+              >
                 <span className={styles.wordText}>{word.word}</span>
                 <span className={styles.wordPoints}>{word.points} pts</span>
               </div>
@@ -52,9 +84,7 @@ export default function WordList({ words, palette, isPaused = false }: WordListP
               <div 
                 key={word.word} 
                 className={`${styles.word} ${styles.found}`}
-                style={{
-                  borderColor: hexToRgba(currentPalette.hiddenWordColor, 0.5),
-                }}
+                style={getWordBoxStyle(true)}
               >
                 <span 
                   className={styles.wordText}

@@ -9,6 +9,20 @@ import GameOverModal from './GameOverModal';
 import { initializeLevel, generateWords, calculateFinalScore } from '@/lib/game/gameEngine';
 import { calculateComboMultiplier } from '@/lib/game/scoring';
 import { getDifficultyMultiplier } from '@/lib/colorPalettes';
+import { 
+  calculateScoreWithBonuses, 
+  getComboMessage, 
+  shouldResetCombo,
+  type ComboState 
+} from '@/lib/game/comboSystem';
+import { 
+  createComboNotification, 
+  createStreakNotification,
+  createBonusNotification,
+  type AchievementNotification 
+} from '@/lib/game/achievementNotifications';
+import { checkChallengeCompletion } from '@/lib/game/dailyChallenges';
+import NotificationToast from './NotificationToast';
 import { WordManager } from '@/lib/game/wordManager';
 import { updateStats, saveScore, loadProfile } from '@/lib/storage/gameStorage';
 import { syncCurrencyWithTotalScore } from '@/lib/currency';
@@ -33,6 +47,18 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [comboState, setComboState] = useState<ComboState>({
+    currentCombo: 0,
+    maxCombo: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastWordFoundTime: 0,
+    comboMultiplier: 1.0,
+    streakBonus: 0,
+  });
+  const [notifications, setNotifications] = useState<AchievementNotification[]>([]);
+  const [currentNotification, setCurrentNotification] = useState<AchievementNotification | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -157,7 +183,11 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     setCurrentLevel(levelConfig);
     
     // Get dynamic text sizing based on palette difficulty and level (updates every 10 levels on boss levels)
-    const textSizing = getTextSizingForDifficulty(paletteToUse.difficulty, level);
+    const textSizing = getTextSizingForDifficulty(
+      paletteToUse.difficulty, 
+      level,
+      paletteToUse.textSizeMultiplier
+    );
     const charWidth = textSizing.charWidth;
     const charHeight = textSizing.charHeight;
     
@@ -248,7 +278,11 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
       // Calculate responsive UI exclusion zones
       const exclusionZones = getExclusionZones();
           // Get dynamic text sizing based on current palette difficulty and level
-          const textSizing = getTextSizingForDifficulty(currentPalette.difficulty, level);
+          const textSizing = getTextSizingForDifficulty(
+            currentPalette.difficulty, 
+            level,
+            currentPalette.textSizeMultiplier
+          );
           const charHeight = textSizing.charHeight;
       const topExclusionRows = Math.ceil(exclusionZones.top / charHeight);
       const bottomExclusionRows = Math.ceil(exclusionZones.bottom / charHeight);
@@ -319,7 +353,11 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
             return { top: topExclusion, bottom: bottomExclusion };
           })();
           // Get dynamic text sizing based on current palette difficulty and level
-          const textSizing = getTextSizingForDifficulty(currentPalette.difficulty, level);
+          const textSizing = getTextSizingForDifficulty(
+            currentPalette.difficulty, 
+            level,
+            currentPalette.textSizeMultiplier
+          );
           const charHeight = textSizing.charHeight;
           const topExclusionRows = Math.ceil(exclusionZones.top / charHeight);
           const bottomExclusionRows = Math.ceil(exclusionZones.bottom / charHeight);
@@ -450,9 +488,10 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     };
   }, [isPaused, gameOver, timeRemaining]);
 
-  // Check for victory
+  // Check for victory - only count real words (exclude fake words)
   useEffect(() => {
-    if (words.length > 0 && words.every(w => w.found) && !gameOver) {
+    const realWords = words.filter(w => !w.isFake);
+    if (realWords.length > 0 && realWords.every(w => w.found) && !gameOver) {
       handleGameOver(true);
     }
   }, [words, gameOver]);
@@ -509,18 +548,70 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
       const wordsFoundAfterMarking = prevWords.filter(w => w.found).length + 1; // +1 because we're about to mark this word as found
       const newCombo = Math.max(0, wordsFoundAfterMarking - 3); // Combo starts after 3 words
       
-      // Update combo state
+      // Update combo state with new system
+      const now = Date.now();
+      setComboState(prev => {
+        const shouldReset = shouldResetCombo(prev.lastWordFoundTime);
+        const updatedCombo = shouldReset ? 1 : prev.currentCombo + 1;
+        
+        // Check for combo milestones
+        const comboMessage = getComboMessage(updatedCombo);
+        if (comboMessage && (updatedCombo === 2 || updatedCombo === 3 || updatedCombo === 5 || 
+            updatedCombo === 7 || updatedCombo === 10 || updatedCombo === 15 || 
+            updatedCombo === 20 || updatedCombo === 25 || updatedCombo === 30)) {
+          setNotifications(prev => [...prev, createComboNotification(updatedCombo)]);
+        }
+        
+        return {
+          currentCombo: updatedCombo,
+          maxCombo: Math.max(prev.maxCombo, updatedCombo),
+          currentStreak: prev.currentStreak,
+          longestStreak: prev.longestStreak,
+          lastWordFoundTime: now,
+          comboMultiplier: calculateComboMultiplier(updatedCombo),
+          streakBonus: prev.streakBonus,
+        };
+      });
+      
       setCombo(newCombo);
       setMaxCombo(prevMax => Math.max(prevMax, newCombo));
 
-      // Calculate score (accuracy is not used here, only calculated at game end)
+      // Calculate score with new combo/streak system
       const basePoints = currentWord.points;
-      const timeBonus = timeRemaining ? Math.floor(timeRemaining * 3) : 0; // Enhanced: 3 points per second
-      const comboMultiplier = calculateComboMultiplier(newCombo); // Use new combo value
+      const timeBonus = timeRemaining ? Math.floor(timeRemaining * 3) : 0;
+      const comboMultiplier = calculateComboMultiplier(newCombo);
       const difficultyMultiplier = getDifficultyMultiplier(currentPalette.difficulty);
-      const wordScore = Math.floor(
-        ((basePoints + timeBonus) * comboMultiplier) * difficultyMultiplier
+      
+      // Use new combo/streak bonus system
+      const scoreCalculation = calculateScoreWithBonuses(
+        basePoints + timeBonus,
+        newCombo,
+        comboState.currentStreak
       );
+      
+      const wordScore = Math.floor(
+        scoreCalculation.finalScore * difficultyMultiplier
+      );
+      
+      // Add bonus notifications if significant
+      if (scoreCalculation.comboBonus > 50) {
+        setNotifications(prev => [...prev, createBonusNotification('combo', scoreCalculation.comboBonus)]);
+      }
+      
+      // Update daily challenges
+      const completedChallenges = checkChallengeCompletion('words', wordsFoundAfterMarking);
+      completedChallenges.forEach(challenge => {
+        setNotifications(prev => [...prev, {
+          id: `challenge-${challenge.id}-${Date.now()}`,
+          type: 'achievement',
+          title: challenge.title,
+          message: `Challenge complete! +${challenge.reward} currency`,
+          icon: '🎯',
+          color: '#ffd700',
+          duration: 3000,
+          priority: 4,
+        }]);
+      });
 
       // Update score
       setScore(prev => prev + wordScore);
@@ -775,8 +866,28 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
 
   const foundWords = words.filter(w => w.found).length;
 
+  // Notification queue management
+  useEffect(() => {
+    if (notifications.length > 0 && !currentNotification) {
+      // Sort by priority and show highest priority notification
+      const sorted = [...notifications].sort((a, b) => b.priority - a.priority);
+      setCurrentNotification(sorted[0]);
+      setNotifications(sorted.slice(1));
+    }
+  }, [notifications, currentNotification]);
+
+  const handleNotificationDismiss = useCallback(() => {
+    setCurrentNotification(null);
+  }, []);
+
   return (
     <div className={styles.gameScreen}>
+      {currentNotification && (
+        <NotificationToast
+          notification={currentNotification}
+          onDismiss={handleNotificationDismiss}
+        />
+      )}
       <LetterGlitch
         ref={glitchRef}
         level={currentLevel}
@@ -799,6 +910,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         onRestart={handleRestart}
         currentPaletteId={currentPalette.id}
         isPaused={isPaused}
+        isGameOver={gameOver}
       />
       {isMandatoryLevel && mandatoryPaletteDifficulty && (
         <div className={styles.mandatoryPaletteNotice}>

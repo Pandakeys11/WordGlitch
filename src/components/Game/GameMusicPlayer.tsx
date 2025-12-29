@@ -2,56 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ColorPalette } from '@/lib/colorPalettes';
+import { useMusicPlayer, MUSIC_PLAYERS } from '@/contexts/MusicPlayerContext';
 import styles from './GameMusicPlayer.module.css';
-
-// Music player configurations (from Omega Player system)
-interface MusicPlayerConfig {
-  id: string;
-  name: string;
-  videoId: string;
-  playlistId?: string;
-}
-
-const MUSIC_PLAYERS: MusicPlayerConfig[] = [
-  {
-    id: 'lofi',
-    name: 'Lo-Fi',
-    videoId: '4xDzrJKXOOY',
-  },
-  {
-    id: 'blues',
-    name: 'Blues',
-    videoId: '4DxKNOUzvJU',
-  },
-  {
-    id: 'tech',
-    name: 'Tech',
-    videoId: '-WEWVsC8CyA',
-  },
-  {
-    id: 'funky',
-    name: 'Funky',
-    videoId: '7XPGU7dmZXg',
-  },
-  {
-    id: 'trance',
-    name: 'Trance',
-    videoId: 'T2QZpy07j4s',
-    playlistId: 'RDT2QZpy07j4s',
-  },
-  {
-    id: 'melodies',
-    name: 'Melodies',
-    videoId: 'nxqlTRYs6NY',
-  },
-];
-
-interface GameMusicPlayerState {
-  isPlaying: boolean;
-  volume: number;
-  isMuted: boolean;
-  currentPlayer: MusicPlayerConfig;
-}
 
 interface GameMusicPlayerProps {
   palette: ColorPalette;
@@ -59,60 +11,74 @@ interface GameMusicPlayerProps {
 }
 
 export default function GameMusicPlayer({ palette, isPaused = false }: GameMusicPlayerProps) {
-  const [playerState, setPlayerState] = useState<GameMusicPlayerState>({
-    isPlaying: false,
-    volume: 0.7,
-    isMuted: false,
-    currentPlayer: MUSIC_PLAYERS[0], // Default to Lo-Fi
-  });
+  const {
+    playerState,
+    play,
+    pause,
+    togglePlayPause,
+    nextTrack,
+    previousTrack,
+    setCurrentPlayer,
+  } = useMusicPlayer();
   
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const waveformRef = useRef<HTMLDivElement | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const wasPlayingBeforePauseRef = useRef(false);
+  const previousIsPausedRef = useRef(isPaused);
 
   useEffect(() => {
-    // Create hidden iframe for YouTube playback
-    const iframe = document.createElement('iframe');
-    const config = playerState.currentPlayer;
-    const playlistParam = config.playlistId ? `&list=${config.playlistId}` : '';
-    
-    iframe.id = 'game-music-iframe';
-    iframe.src = `https://www.youtube.com/embed/${config.videoId}?autoplay=0&controls=0&showinfo=0&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&fs=0&cc_load_policy=0&playsinline=1${playlistParam}`;
-    iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;opacity:0;pointer-events:none;';
-    iframe.allow = 'autoplay; encrypted-media';
-    iframe.setAttribute('allowfullscreen', '');
-    document.body.appendChild(iframe);
-    iframeRef.current = iframe;
-
     initializeWaveform();
+  }, []);
 
-    return () => {
-      if (iframeRef.current && iframeRef.current.parentNode) {
-        iframeRef.current.parentNode.removeChild(iframeRef.current);
-      }
-    };
-  }, [playerState.currentPlayer.id]);
-
-  // Handle game pause - pause music when game is paused
+  // Handle game pause - pause music when game is paused, but don't interfere on level changes
   useEffect(() => {
-    if (isPaused && playerState.isPlaying) {
-      const iframe = iframeRef.current;
-      if (iframe && iframe.contentWindow) {
-        try {
-          iframe.contentWindow.postMessage(
-            '{"event":"command","func":"pauseVideo","args":""}',
-            '*'
-          );
-        } catch (e) {
-          console.warn('Iframe pause command failed:', e);
+    // Only act on actual pause state changes, not on initial mount or level changes
+    const isPauseStateChange = previousIsPausedRef.current !== isPaused;
+    previousIsPausedRef.current = isPaused;
+
+    if (isPauseStateChange) {
+      if (isPaused && playerState.isPlaying) {
+        // Game was paused - remember we were playing and pause music
+        wasPlayingBeforePauseRef.current = true;
+        pause();
+        if (waveformRef.current) {
+          waveformRef.current.classList.remove(styles.waveformPlaying);
+        }
+      } else if (!isPaused && wasPlayingBeforePauseRef.current && !playerState.isPlaying) {
+        // Game was unpaused - resume music if it was playing before
+        wasPlayingBeforePauseRef.current = false;
+        play();
+        if (waveformRef.current) {
+          waveformRef.current.classList.add(styles.waveformPlaying);
         }
       }
-      setPlayerState(prev => ({ ...prev, isPlaying: false }));
-      if (waveformRef.current) {
-        waveformRef.current.classList.remove(styles.waveformPlaying);
-      }
     }
-  }, [isPaused, playerState.isPlaying]);
+  }, [isPaused, playerState.isPlaying, pause, play]);
+
+  // Sync waveform animation with playing state
+  useEffect(() => {
+    if (playerState.isPlaying && !isPaused) {
+      startWaveformAnimation();
+    } else {
+      stopWaveformAnimation();
+    }
+  }, [playerState.isPlaying, isPaused]);
+
+  // On mount, restore playing state if music was playing before (for level transitions)
+  useEffect(() => {
+    // Only restore if game is not paused and music should be playing
+    if (!isPaused && playerState.isPlaying) {
+      // Ensure music is actually playing (in case iframe lost state)
+      const checkAndResume = () => {
+        if (playerState.isPlaying && !isPaused) {
+          play();
+        }
+      };
+      // Small delay to ensure iframe is ready
+      const timeoutId = setTimeout(checkAndResume, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, []); // Only run on mount
 
   const initializeWaveform = () => {
     if (!waveformRef.current) return;
@@ -124,86 +90,17 @@ export default function GameMusicPlayer({ palette, isPaused = false }: GameMusic
     });
   };
 
-  const playViaIframe = () => {
-    const iframe = iframeRef.current;
-    if (iframe && iframe.contentWindow) {
-      try {
-        iframe.contentWindow.postMessage(
-          '{"event":"command","func":"playVideo","args":""}',
-          '*'
-        );
-      } catch (e) {
-        console.warn('Iframe play command failed:', e);
-      }
-    }
-  };
-
-  const pauseViaIframe = () => {
-    const iframe = iframeRef.current;
-    if (iframe && iframe.contentWindow) {
-      try {
-        iframe.contentWindow.postMessage(
-          '{"event":"command","func":"pauseVideo","args":""}',
-          '*'
-        );
-      } catch (e) {
-        console.warn('Iframe pause command failed:', e);
-      }
-    }
-  };
-
-  const handlePlay = () => {
-    if (isPaused) return; // Don't play if game is paused
-    playViaIframe();
-    setPlayerState(prev => ({ ...prev, isPlaying: true }));
-    startWaveformAnimation();
-  };
-
-  const handlePause = () => {
-    pauseViaIframe();
-    setPlayerState(prev => ({ ...prev, isPlaying: false }));
-    stopWaveformAnimation();
-  };
-
   const handleTogglePlayPause = () => {
     if (isPaused) return; // Don't toggle if game is paused
-    if (playerState.isPlaying) {
-      handlePause();
-    } else {
-      handlePlay();
-    }
+    togglePlayPause();
   };
 
   const handleNextTrack = () => {
-    const currentIndex = MUSIC_PLAYERS.findIndex(p => p.id === playerState.currentPlayer.id);
-    const nextIndex = (currentIndex + 1) % MUSIC_PLAYERS.length;
-    const wasPlaying = playerState.isPlaying;
-    
-    handlePause();
-    setPlayerState(prev => ({ ...prev, currentPlayer: MUSIC_PLAYERS[nextIndex] }));
-    
-    // Auto-play next track if it was playing
-    if (wasPlaying && !isPaused) {
-      setTimeout(() => {
-        handlePlay();
-      }, 500);
-    }
+    nextTrack();
   };
 
   const handlePreviousTrack = () => {
-    const currentIndex = MUSIC_PLAYERS.findIndex(p => p.id === playerState.currentPlayer.id);
-    const prevIndex = currentIndex === 0 ? MUSIC_PLAYERS.length - 1 : currentIndex - 1;
-    const wasPlaying = playerState.isPlaying;
-    
-    handlePause();
-    setPlayerState(prev => ({ ...prev, currentPlayer: MUSIC_PLAYERS[prevIndex] }));
-    
-    // Auto-play previous track if it was playing
-    if (wasPlaying && !isPaused) {
-      setTimeout(() => {
-        handlePlay();
-      }, 500);
-    }
+    previousTrack();
   };
 
   const startWaveformAnimation = () => {
@@ -306,12 +203,7 @@ export default function GameMusicPlayer({ palette, isPaused = false }: GameMusic
                   key={player.id}
                   className={`${styles.trackButton} ${playerState.currentPlayer.id === player.id ? styles.active : ''}`}
                   onClick={() => {
-                    const wasPlaying = playerState.isPlaying;
-                    handlePause();
-                    setPlayerState(prev => ({ ...prev, currentPlayer: player }));
-                    if (wasPlaying && !isPaused) {
-                      setTimeout(() => handlePlay(), 500);
-                    }
+                    setCurrentPlayer(player);
                   }}
                 >
                   {player.name}

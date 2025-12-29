@@ -20,6 +20,7 @@ interface GameHUDProps {
   onRestart?: () => void;
   currentPaletteId?: string;
   isPaused?: boolean;
+  isGameOver?: boolean; // Indicates if game over modal is showing
 }
 
 export default function GameHUD({
@@ -35,6 +36,7 @@ export default function GameHUD({
   onRestart,
   currentPaletteId = 'ocean',
   isPaused = false,
+  isGameOver = false,
 }: GameHUDProps) {
   const palette = getPalette(currentPaletteId);
   
@@ -95,7 +97,7 @@ export default function GameHUD({
             <GameProfileCard />
           </div>
           <div className={styles.musicPlayerWrapper}>
-            <GameMusicPlayer palette={palette} isPaused={isPaused} />
+            <GameMusicPlayer palette={palette} isPaused={isPaused && !isGameOver} />
           </div>
           {onHome && (
             <button className={styles.actionButton} onClick={onHome} aria-label="Home">

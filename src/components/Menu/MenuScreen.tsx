@@ -10,6 +10,7 @@ import { getPalette, DEFAULT_PALETTE_ID, ColorPalette } from '@/lib/colorPalette
 import PaletteToggle from '../UI/PaletteToggle';
 import { EyeIcon, EyeOffIcon, PlayIcon, UserIcon, TrophyIcon, BookIcon, ZapIcon } from '../UI/GameIcons';
 import { getCurrencyBalance, syncCurrencyWithTotalScore } from '@/lib/currency';
+import GameMusicPlayer from '../Game/GameMusicPlayer';
 import styles from './MenuScreen.module.css';
 
 interface MenuScreenProps {
@@ -184,18 +185,23 @@ export default function MenuScreen({
             className={styles.logo}
           />
         <div className={styles.header}>
-          <h1 
-            className={styles.title}
-            style={{
-              textShadow: `
-                0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)},
-                0 0 40px ${hexToRgba(currentPalette.uiColors.primary, 0.3)},
-                0 4px 8px rgba(0, 0, 0, 0.5)
-              `,
-            }}
-          >
-            WORD GLITCH
-          </h1>
+          <div className={styles.headerTop}>
+            <h1 
+              className={styles.title}
+              style={{
+                textShadow: `
+                  0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)},
+                  0 0 40px ${hexToRgba(currentPalette.uiColors.primary, 0.3)},
+                  0 4px 8px rgba(0, 0, 0, 0.5)
+                `,
+              }}
+            >
+              WORD GLITCH
+            </h1>
+            <div className={styles.musicPlayerWrapper}>
+              <GameMusicPlayer palette={currentPalette} isPaused={false} />
+            </div>
+          </div>
           <p className={styles.subtitle}>Find words in the chaos</p>
         </div>
 

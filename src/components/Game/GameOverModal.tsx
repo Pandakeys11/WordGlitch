@@ -4,6 +4,7 @@ import React from 'react';
 import { GameScore } from '@/types/game';
 import { ColorPalette, getPalette, DEFAULT_PALETTE_ID } from '@/lib/colorPalettes';
 import { loadSettings, loadProfile } from '@/lib/storage/gameStorage';
+import GameMusicPlayer from './GameMusicPlayer';
 import styles from './GameOverModal.module.css';
 
 interface GameOverModalProps {
@@ -102,6 +103,11 @@ export default function GameOverModal({
 
   return (
     <div className={styles.overlay}>
+      {/* Music Player - keep playing during score screen */}
+      <div className={styles.musicPlayerContainer}>
+        <GameMusicPlayer palette={currentPalette} isPaused={false} />
+      </div>
+      
       <div 
         className={styles.modal}
         style={{

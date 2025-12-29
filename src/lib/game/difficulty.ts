@@ -32,31 +32,37 @@ export interface TextSizing {
 
 export function getTextSizingForDifficulty(
   paletteDifficulty: PaletteDifficulty,
-  level?: number
+  level?: number,
+  paletteTextSizeMultiplier?: number
 ): TextSizing {
   const baseFontSize = FONT_SIZE;
   const baseCharWidth = CHAR_WIDTH;
   const baseCharHeight = CHAR_HEIGHT;
 
-  // Get base sizing from palette difficulty
+  // Use palette-specific multiplier if provided, otherwise fall back to difficulty-based multiplier
   let paletteMultiplier: number;
-  switch (paletteDifficulty) {
-    case 'easy':
-      // Easy palettes: 100% of base (baseline - same as original size before enhancement)
-      paletteMultiplier = 1.0;
-      break;
-    case 'average':
-      // Average palettes: 75% of base (25% smaller)
-      paletteMultiplier = 0.75;
-      break;
-    case 'hard':
-      // Hard palettes: 55% of base (45% smaller)
-      paletteMultiplier = 0.55;
-      break;
-    default:
-      // Default to easy sizing
-      paletteMultiplier = 1.0;
-      break;
+  if (paletteTextSizeMultiplier !== undefined) {
+    paletteMultiplier = paletteTextSizeMultiplier;
+  } else {
+    // Get base sizing from palette difficulty
+    switch (paletteDifficulty) {
+      case 'easy':
+        // Easy palettes: 100% of base (baseline - same as original size before enhancement)
+        paletteMultiplier = 1.0;
+        break;
+      case 'average':
+        // Average palettes: 85% of base (15% smaller)
+        paletteMultiplier = 0.85;
+        break;
+      case 'hard':
+        // Hard palettes: 70% of base (30% smaller)
+        paletteMultiplier = 0.70;
+        break;
+      default:
+        // Default to easy sizing
+        paletteMultiplier = 1.0;
+        break;
+    }
   }
 
   // Apply level-based scaling only on boss levels (every 10 levels)

@@ -1,10 +1,36 @@
 /**
  * Color Palette System
- * Defines color palettes for glitch animation, hidden words, and UI elements
+ * Enhanced color palettes with optimized contrast and visual effects
  * Organized by difficulty: Easy (high contrast) -> Average (medium contrast) -> Hard (low contrast)
  */
 
+import { findOptimalHiddenWordColor, getContrastAgainstGlitchColors } from './colorUtils';
+
 export type PaletteDifficulty = 'easy' | 'average' | 'hard';
+
+/**
+ * Visual effects for hidden words
+ */
+export interface HiddenWordEffects {
+  /** Enable outline around hidden words */
+  outline: boolean;
+  /** Outline color (if outline enabled) */
+  outlineColor?: string;
+  /** Outline width in pixels */
+  outlineWidth?: number;
+  /** Enable glow effect */
+  glow: boolean;
+  /** Glow color */
+  glowColor?: string;
+  /** Glow blur radius */
+  glowBlur?: number;
+  /** Enable pulsing animation */
+  pulse: boolean;
+  /** Pulse speed (ms per cycle) */
+  pulseSpeed?: number;
+  /** Text shadow for depth */
+  textShadow?: string;
+}
 
 export interface ColorPalette {
   id: string;
@@ -12,7 +38,9 @@ export interface ColorPalette {
   description: string;
   difficulty: PaletteDifficulty; // Difficulty level of the palette
   glitchColors: string[]; // Colors for letter glitch animation
-  hiddenWordColor: string; // Color for hidden words (should contrast with glitch colors)
+  hiddenWordColor: string; // Color for hidden words (optimized for contrast)
+  /** Visual effects for hidden words to enhance visibility */
+  hiddenWordEffects?: HiddenWordEffects;
   uiColors: {
     primary: string;
     secondary: string;
@@ -20,6 +48,10 @@ export interface ColorPalette {
     text: string;
     background: string;
   };
+  /** Optimal text size multiplier for this palette (0.5 - 1.0) */
+  textSizeMultiplier?: number;
+  /** Contrast ratio achieved (for quality assurance) */
+  contrastRatio?: number;
 }
 
 /**
@@ -38,16 +70,87 @@ export function getDifficultyMultiplier(difficulty: PaletteDifficulty): number {
   }
 }
 
+/**
+ * Get text size multiplier based on difficulty
+ * Easy: 100% (1.0), Average: 85% (0.85), Hard: 70% (0.70)
+ */
+export function getTextSizeMultiplier(difficulty: PaletteDifficulty): number {
+  switch (difficulty) {
+    case 'easy':
+      return 1.0;
+    case 'average':
+      return 0.85;
+    case 'hard':
+      return 0.70;
+    default:
+      return 1.0;
+  }
+}
+
+/**
+ * Create hidden word effects based on difficulty
+ */
+function createHiddenWordEffects(
+  difficulty: PaletteDifficulty,
+  hiddenWordColor: string
+): HiddenWordEffects {
+  switch (difficulty) {
+    case 'easy':
+      return {
+        outline: true,
+        outlineColor: '#000000',
+        outlineWidth: 2,
+        glow: true,
+        glowColor: hiddenWordColor,
+        glowBlur: 8,
+        pulse: false,
+        textShadow: `0 0 10px ${hiddenWordColor}, 0 0 20px ${hiddenWordColor}40`,
+      };
+    case 'average':
+      return {
+        outline: true,
+        outlineColor: '#000000',
+        outlineWidth: 1.5,
+        glow: true,
+        glowColor: hiddenWordColor,
+        glowBlur: 6,
+        pulse: false,
+        textShadow: `0 0 8px ${hiddenWordColor}60`,
+      };
+    case 'hard':
+      return {
+        outline: true,
+        outlineColor: '#ffffff',
+        outlineWidth: 1,
+        glow: true,
+        glowColor: hiddenWordColor,
+        glowBlur: 4,
+        pulse: true,
+        pulseSpeed: 2000,
+        textShadow: `0 0 6px ${hiddenWordColor}80`,
+      };
+    default:
+      return {
+        outline: false,
+        glow: false,
+        pulse: false,
+      };
+  }
+}
+
 export const COLOR_PALETTES: ColorPalette[] = [
   // ==================== EASY (High Contrast) ====================
-  // Hidden words use complementary colors that stand out clearly
+  // Hidden words use complementary colors that stand out clearly with strong visual effects
   {
     id: 'ocean',
     name: 'Ocean Depths',
     description: 'Cool teal and blue tones',
     difficulty: 'easy',
-    glitchColors: ['#2b4539', '#4ba080', '#4d8fb0'], // Softened - reduced brightness
-    hiddenWordColor: '#ffaa5c', // Stronger - brighter coral-orange for better visibility
+    glitchColors: ['#2b4539', '#4ba080', '#4d8fb0'],
+    hiddenWordColor: '#ffaa5c', // Optimized coral-orange - high contrast against cool tones
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ffaa5c'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ffaa5c', ['#2b4539', '#4ba080', '#4d8fb0']),
     uiColors: {
       primary: '#61dca3',
       secondary: '#61b3dc',
@@ -61,8 +164,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Fire Storm',
     description: 'Warm red and orange flames',
     difficulty: 'easy',
-    glitchColors: ['#330000', '#cc3300', '#cc6600', '#cc8800'], // Softened - reduced saturation
-    hiddenWordColor: '#00f0ff', // Stronger - brighter cyan for better visibility
+    glitchColors: ['#330000', '#cc3300', '#cc6600', '#cc8800'],
+    hiddenWordColor: '#00f0ff', // Bright cyan - perfect complement to warm fire colors
+    hiddenWordEffects: createHiddenWordEffects('easy', '#00f0ff'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#00f0ff', ['#330000', '#cc3300', '#cc6600', '#cc8800']),
     uiColors: {
       primary: '#ff4400',
       secondary: '#ff8800',
@@ -76,8 +182,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Forest Green',
     description: 'Natural green and earth tones',
     difficulty: 'easy',
-    glitchColors: ['#0a2e0a', '#244010', '#3c6218', '#55862e'], // Softened - reduced brightness
-    hiddenWordColor: '#ff80b3', // Stronger - brighter pink for better visibility
+    glitchColors: ['#0a2e0a', '#244010', '#3c6218', '#55862e'],
+    hiddenWordColor: '#ff80b3', // Vibrant pink - excellent contrast against greens
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ff80b3'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ff80b3', ['#0a2e0a', '#244010', '#3c6218', '#55862e']),
     uiColors: {
       primary: '#4a7c2a',
       secondary: '#6ba83a',
@@ -91,8 +200,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Cosmic Purple',
     description: 'Deep space purple and violet',
     difficulty: 'easy',
-    glitchColors: ['#1a0a2e', '#3a1070', '#622399', '#7d3eb0'], // Softened - reduced saturation
-    hiddenWordColor: '#ffed3a', // Stronger - brighter golden yellow for better visibility
+    glitchColors: ['#1a0a2e', '#3a1070', '#622399', '#7d3eb0'],
+    hiddenWordColor: '#ffed3a', // Golden yellow - complementary to purple
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ffed3a'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ffed3a', ['#1a0a2e', '#3a1070', '#622399', '#7d3eb0']),
     uiColors: {
       primary: '#7b2cbf',
       secondary: '#9d4edd',
@@ -106,8 +218,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'The Matrix',
     description: 'Green code rain aesthetic',
     difficulty: 'easy',
-    glitchColors: ['#0d1b0a', '#003b00', '#00cc33', '#00a028', '#2dcc10'], // Softened - reduced brightness
-    hiddenWordColor: '#ff3366', // Stronger - brighter red for better visibility
+    glitchColors: ['#0d1b0a', '#003b00', '#00cc33', '#00a028', '#2dcc10'],
+    hiddenWordColor: '#ff3366', // Bright red - classic Matrix contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ff3366'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ff3366', ['#0d1b0a', '#003b00', '#00cc33', '#00a028', '#2dcc10']),
     uiColors: {
       primary: '#00ff41',
       secondary: '#00cc33',
@@ -121,8 +236,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Christmas',
     description: 'Festive red, green, and white',
     difficulty: 'easy',
-    glitchColors: ['#0d2818', '#1a4d2e', '#1a701a', '#b01030', '#cc0000', '#cccccc'], // Softened - reduced saturation/brightness
-    hiddenWordColor: '#ffed4a', // Stronger - brighter gold for better visibility
+    glitchColors: ['#0d2818', '#1a4d2e', '#1a701a', '#b01030', '#cc0000', '#cccccc'],
+    hiddenWordColor: '#ffed4a', // Gold - festive and high contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ffed4a'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ffed4a', ['#0d2818', '#1a4d2e', '#1a701a', '#b01030', '#cc0000', '#cccccc']),
     uiColors: {
       primary: '#dc143c',
       secondary: '#228B22',
@@ -136,8 +254,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Halloween',
     description: 'Spooky orange, black, and purple',
     difficulty: 'easy',
-    glitchColors: ['#000000', '#1a0a1a', '#cc5200', '#cc6d00', '#7000cc'], // Softened - reduced saturation
-    hiddenWordColor: '#33ff66', // Stronger - brighter green for better visibility
+    glitchColors: ['#000000', '#1a0a1a', '#cc5200', '#cc6d00', '#7000cc'],
+    hiddenWordColor: '#33ff66', // Bright green - spooky contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#33ff66'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#33ff66', ['#000000', '#1a0a1a', '#cc5200', '#cc6d00', '#7000cc']),
     uiColors: {
       primary: '#ff6600',
       secondary: '#ff8800',
@@ -154,8 +275,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Neon Cyber',
     description: 'Vibrant neon pink and purple',
     difficulty: 'average',
-    glitchColors: ['#1a0033', '#cc00cc', '#00cccc', '#cc0088'], // Softened - reduced saturation
-    hiddenWordColor: '#ffcc33', // Stronger - brighter orange-yellow for better visibility
+    glitchColors: ['#1a0033', '#cc00cc', '#00cccc', '#cc0088'],
+    hiddenWordColor: '#ffcc33', // Orange-yellow - good contrast in neon palette
+    hiddenWordEffects: createHiddenWordEffects('average', '#ffcc33'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ffcc33', ['#1a0033', '#cc00cc', '#00cccc', '#cc0088']),
     uiColors: {
       primary: '#ff00ff',
       secondary: '#00ffff',
@@ -169,8 +293,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Cyberpunk 2077',
     description: 'Neon city night vibes',
     difficulty: 'average',
-    glitchColors: ['#1a0033', '#cc0066', '#00c4cc', '#ccaa00', '#7000cc'], // Softened - reduced saturation
-    hiddenWordColor: '#33ffcc', // Stronger - brighter cyan-green for better visibility
+    glitchColors: ['#1a0033', '#cc0066', '#00c4cc', '#ccaa00', '#7000cc'],
+    hiddenWordColor: '#33ffcc', // Cyan-green - cyberpunk aesthetic
+    hiddenWordEffects: createHiddenWordEffects('average', '#33ffcc'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#33ffcc', ['#1a0033', '#cc0066', '#00c4cc', '#ccaa00', '#7000cc']),
     uiColors: {
       primary: '#ff0080',
       secondary: '#00f5ff',
@@ -184,8 +311,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Star Wars',
     description: 'Lightsaber blue and deep space',
     difficulty: 'average',
-    glitchColors: ['#000428', '#003e75', '#3f9cc6', '#2092c6', '#66a8c8'], // Softened - reduced brightness
-    hiddenWordColor: '#ffcc33', // Stronger - brighter amber-orange for better visibility
+    glitchColors: ['#000428', '#003e75', '#3f9cc6', '#2092c6', '#66a8c8'],
+    hiddenWordColor: '#ffcc33', // Amber-orange - contrasts with blue
+    hiddenWordEffects: createHiddenWordEffects('average', '#ffcc33'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ffcc33', ['#000428', '#003e75', '#3f9cc6', '#2092c6', '#66a8c8']),
     uiColors: {
       primary: '#4fc3f7',
       secondary: '#29b6f6',
@@ -199,8 +329,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Synthwave 80s',
     description: 'Retro sunset nostalgia',
     difficulty: 'average',
-    glitchColors: ['#0a0a0f', '#1a0033', '#cc0066', '#cc7000', '#00aacc'], // Softened - reduced saturation
-    hiddenWordColor: '#33ffaa', // Stronger - brighter green for better visibility
+    glitchColors: ['#0a0a0f', '#1a0033', '#cc0066', '#cc7000', '#00aacc'],
+    hiddenWordColor: '#33ffaa', // Bright green - retro synthwave
+    hiddenWordEffects: createHiddenWordEffects('average', '#33ffaa'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#33ffaa', ['#0a0a0f', '#1a0033', '#cc0066', '#cc7000', '#00aacc']),
     uiColors: {
       primary: '#ff0080',
       secondary: '#00d9ff',
@@ -214,8 +347,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'New Year',
     description: 'Celebratory gold, silver, and champagne',
     difficulty: 'average',
-    glitchColors: ['#1a1a1a', '#2d2d2d', '#ccaa00', '#999999', '#c4b090'], // Softened - reduced brightness
-    hiddenWordColor: '#ff80b3', // Stronger - brighter pink for better visibility
+    glitchColors: ['#1a1a1a', '#2d2d2d', '#ccaa00', '#999999', '#c4b090'],
+    hiddenWordColor: '#ff80b3', // Pink - festive contrast
+    hiddenWordEffects: createHiddenWordEffects('average', '#ff80b3'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ff80b3', ['#1a1a1a', '#2d2d2d', '#ccaa00', '#999999', '#c4b090']),
     uiColors: {
       primary: '#ffd700',
       secondary: '#c0c0c0',
@@ -229,8 +365,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Valentine\'s Day',
     description: 'Romantic pink, red, and rose',
     difficulty: 'average',
-    glitchColors: ['#2d0a1a', '#70122c', '#cc1075', '#cc5490', '#cc98a0'], // Softened - reduced saturation
-    hiddenWordColor: '#a8e4ff', // Stronger - brighter sky blue for better visibility
+    glitchColors: ['#2d0a1a', '#70122c', '#cc1075', '#cc5490', '#cc98a0'],
+    hiddenWordColor: '#a8e4ff', // Sky blue - romantic contrast
+    hiddenWordEffects: createHiddenWordEffects('average', '#a8e4ff'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#a8e4ff', ['#2d0a1a', '#70122c', '#cc1075', '#cc5490', '#cc98a0']),
     uiColors: {
       primary: '#ff1493',
       secondary: '#ff69b4',
@@ -244,8 +383,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Rainbow Spectrum',
     description: 'Vibrant rainbow colors flowing through the spectrum',
     difficulty: 'average',
-    glitchColors: ['#cc3300', '#cc7700', '#ccaa00', '#66cc33', '#3366cc', '#6633cc', '#cc33cc'], // Softened rainbow - Red, Orange, Yellow, Green, Blue, Indigo, Violet (ROYGBIV flow)
-    hiddenWordColor: '#ffffff', // Stronger - bright white for maximum visibility against rainbow
+    glitchColors: ['#cc3300', '#cc7700', '#ccaa00', '#66cc33', '#3366cc', '#6633cc', '#cc33cc'],
+    hiddenWordColor: '#ffffff', // White - maximum visibility against rainbow
+    hiddenWordEffects: createHiddenWordEffects('average', '#ffffff'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ffffff', ['#cc3300', '#cc7700', '#ccaa00', '#66cc33', '#3366cc', '#6633cc', '#cc33cc']),
     uiColors: {
       primary: '#ff6600',
       secondary: '#00ccff',
@@ -259,8 +401,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Monochrome',
     description: 'Classic black, white, grey, and silver',
     difficulty: 'average',
-    glitchColors: ['#000000', '#333333', '#666666', '#999999', '#cccccc', '#c0c0c0'], // Softened monochrome - Black, Dark Grey, Medium Grey, Light Grey, Silver, White-Grey
-    hiddenWordColor: '#ffd700', // Stronger - bright gold for excellent visibility against monochrome
+    glitchColors: ['#000000', '#333333', '#666666', '#999999', '#cccccc', '#c0c0c0'],
+    hiddenWordColor: '#ffd700', // Gold - excellent visibility against monochrome
+    hiddenWordEffects: createHiddenWordEffects('average', '#ffd700'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ffd700', ['#000000', '#333333', '#666666', '#999999', '#cccccc', '#c0c0c0']),
     uiColors: {
       primary: '#ffffff',
       secondary: '#c0c0c0',
@@ -271,14 +416,17 @@ export const COLOR_PALETTES: ColorPalette[] = [
   },
 
   // ==================== HARD (Low Contrast) ====================
-  // Hidden words use colors very close to glitch colors but still visible
+  // Hidden words use colors very close to glitch colors but still visible with subtle effects
   {
     id: 'vaporwave',
     name: 'Vaporwave',
     description: 'Soft pastel dreamscape',
     difficulty: 'hard',
-    glitchColors: ['#2d1b4e', '#cc5aa5', '#01a5cc', '#04cc81', '#9552cc'], // Softened - reduced saturation
-    hiddenWordColor: '#ffb3f0', // Stronger - brighter pink for better visibility
+    glitchColors: ['#2d1b4e', '#cc5aa5', '#01a5cc', '#04cc81', '#9552cc'],
+    hiddenWordColor: '#ffb3f0', // Soft pink - subtle contrast in pastel palette
+    hiddenWordEffects: createHiddenWordEffects('hard', '#ffb3f0'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#ffb3f0', ['#2d1b4e', '#cc5aa5', '#01a5cc', '#04cc81', '#9552cc']),
     uiColors: {
       primary: '#ff71ce',
       secondary: '#01cdfe',
@@ -292,8 +440,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Terminal Amber',
     description: 'Classic retro computing',
     difficulty: 'hard',
-    glitchColors: ['#1a1a1a', '#2a2a1a', '#cc8c00', '#cc8800', '#cc7a00'], // Softened - reduced brightness
-    hiddenWordColor: '#ffdd66', // Stronger - brighter amber for better visibility
+    glitchColors: ['#1a1a1a', '#2a2a1a', '#cc8c00', '#cc8800', '#cc7a00'],
+    hiddenWordColor: '#ffdd66', // Bright amber - terminal aesthetic
+    hiddenWordEffects: createHiddenWordEffects('hard', '#ffdd66'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#ffdd66', ['#1a1a1a', '#2a2a1a', '#cc8c00', '#cc8800', '#cc7a00']),
     uiColors: {
       primary: '#ffb000',
       secondary: '#ffaa00',
@@ -307,8 +458,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Aurora Borealis',
     description: 'Northern lights magic',
     difficulty: 'hard',
-    glitchColors: ['#0a1929', '#00b85e', '#0096aa', '#633dcc', '#0089aa'], // Softened - reduced brightness
-    hiddenWordColor: '#66e0f0', // Stronger - brighter cyan-green for better visibility
+    glitchColors: ['#0a1929', '#00b85e', '#0096aa', '#633dcc', '#0089aa'],
+    hiddenWordColor: '#66e0f0', // Cyan-green - aurora colors
+    hiddenWordEffects: createHiddenWordEffects('hard', '#66e0f0'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#66e0f0', ['#0a1929', '#00b85e', '#0096aa', '#633dcc', '#0089aa']),
     uiColors: {
       primary: '#00e676',
       secondary: '#00bcd4',
@@ -322,8 +476,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Midnight Cobalt',
     description: 'Deep night electric blue',
     difficulty: 'hard',
-    glitchColors: ['#000814', '#001730', '#002a52', '#08559a', '#3da0c0'], // Softened - reduced brightness
-    hiddenWordColor: '#9de5ff', // Stronger - brighter blue for better visibility
+    glitchColors: ['#000814', '#001730', '#002a52', '#08559a', '#3da0c0'],
+    hiddenWordColor: '#9de5ff', // Light blue - subtle in blue palette
+    hiddenWordEffects: createHiddenWordEffects('hard', '#9de5ff'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#9de5ff', ['#000814', '#001730', '#002a52', '#08559a', '#3da0c0']),
     uiColors: {
       primary: '#4cc9f0',
       secondary: '#0a6bc2',
@@ -337,8 +494,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Sunset Horizon',
     description: 'Warm golden hour palette',
     difficulty: 'hard',
-    glitchColors: ['#1a0a0a', '#702e2e', '#cc5529', '#cc8400', '#ccaa00'], // Softened - reduced saturation
-    hiddenWordColor: '#ffcc66', // Stronger - brighter orange-gold for better visibility
+    glitchColors: ['#1a0a0a', '#702e2e', '#cc5529', '#cc8400', '#ccaa00'],
+    hiddenWordColor: '#ffcc66', // Orange-gold - subtle in warm palette
+    hiddenWordEffects: createHiddenWordEffects('hard', '#ffcc66'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#ffcc66', ['#1a0a0a', '#702e2e', '#cc5529', '#cc8400', '#ccaa00']),
     uiColors: {
       primary: '#ff6b35',
       secondary: '#ffa500',
@@ -352,8 +512,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Easter',
     description: 'Soft pastel spring colors',
     difficulty: 'hard',
-    glitchColors: ['#2d2d2d', '#cc9299', '#ccaa00', '#7ac87a', '#6ca8bb'], // Softened - reduced brightness
-    hiddenWordColor: '#ffd1d9', // Stronger - brighter pink for better visibility
+    glitchColors: ['#2d2d2d', '#cc9299', '#ccaa00', '#7ac87a', '#6ca8bb'],
+    hiddenWordColor: '#ffd1d9', // Soft pink - pastel palette
+    hiddenWordEffects: createHiddenWordEffects('hard', '#ffd1d9'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#ffd1d9', ['#2d2d2d', '#cc9299', '#ccaa00', '#7ac87a', '#6ca8bb']),
     uiColors: {
       primary: '#ffb6c1',
       secondary: '#98fb98',
@@ -367,8 +530,11 @@ export const COLOR_PALETTES: ColorPalette[] = [
     name: 'Studio Ghibli',
     description: 'Enchanted pastel dreamscape',
     difficulty: 'hard',
-    glitchColors: ['#3d5a3d', '#5599b3', '#70a890', '#b89d50', '#b8696d'], // Softened - very low contrast pastels
-    hiddenWordColor: '#d9a5c2', // Stronger - soft rose-pink for better visibility
+    glitchColors: ['#3d5a3d', '#5599b3', '#70a890', '#b89d50', '#b8696d'],
+    hiddenWordColor: '#d9a5c2', // Soft rose-pink - Ghibli aesthetic
+    hiddenWordEffects: createHiddenWordEffects('hard', '#d9a5c2'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#d9a5c2', ['#3d5a3d', '#5599b3', '#70a890', '#b89d50', '#b8696d']),
     uiColors: {
       primary: '#7fb3d3',
       secondary: '#a8d5ba',

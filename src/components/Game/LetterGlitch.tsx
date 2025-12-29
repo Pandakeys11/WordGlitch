@@ -193,7 +193,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
 
     // Store sizing in refs so they can be accessed in closures
     // Always get fresh sizing based on palette difficulty and level (updates every 10 levels on boss levels)
-    const getCurrentSizing = () => getTextSizingForDifficulty(activePalette.difficulty, level.level);
+    const getCurrentSizing = () => getTextSizingForDifficulty(
+      activePalette.difficulty, 
+      level.level,
+      activePalette.textSizeMultiplier
+    );
     const sizingRef = useRef(getCurrentSizing());
     
     // Update sizing when palette difficulty or level changes
@@ -295,7 +299,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       contextRef.current = ctx;
       
       // Ensure sizing is up-to-date for current palette difficulty and level (recalculate to be absolutely sure)
-      const currentSizing = getTextSizingForDifficulty(activePalette.difficulty, level.level);
+      const currentSizing = getTextSizingForDifficulty(
+        activePalette.difficulty, 
+        level.level,
+        activePalette.textSizeMultiplier
+      );
       sizingRef.current = currentSizing;
 
       // Debounce resize for better performance on mobile
@@ -326,7 +334,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         // Get current sizing (always recalculate to ensure it's correct for current palette difficulty and level)
-        const currentSizing = getTextSizingForDifficulty(activePalette.difficulty, level.level);
+        const currentSizing = getTextSizingForDifficulty(
+        activePalette.difficulty, 
+        level.level,
+        activePalette.textSizeMultiplier
+      );
         sizingRef.current = currentSizing;
         
         // Store logical dimensions for calculations (use dynamic sizing)
@@ -668,7 +680,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       ctx.imageSmoothingQuality = 'high';
       
       // Get current sizing - always recalculate from current palette difficulty and level to ensure it's correct
-      const currentSizing = getTextSizingForDifficulty(activePalette.difficulty, level.level);
+      const currentSizing = getTextSizingForDifficulty(
+        activePalette.difficulty, 
+        level.level,
+        activePalette.textSizeMultiplier
+      );
       sizingRef.current = currentSizing; // Update ref for other uses
       const charWidth = currentSizing.charWidth;
       const charHeight = currentSizing.charHeight;
@@ -727,12 +743,24 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
 
       // Draw visible words - enhanced visibility with background boxes and outlines
       const now = Date.now();
+      const effects = activePalette.hiddenWordEffects;
+      
       words.forEach(word => {
         if (word.found || !word.isVisible) return;
         
         const baseColor = getWordColor();
         const vibrantColor = getVibrantColor(level.level, baseColor);
         const glowProps = getGlowProperties(level.level);
+        
+        // Apply palette-specific visual effects
+        const outlineEnabled = effects?.outline ?? false;
+        const outlineColor = effects?.outlineColor || '#000000';
+        const outlineWidth = effects?.outlineWidth || 1;
+        const glowEnabled = effects?.glow ?? false;
+        const glowColor = effects?.glowColor || vibrantColor;
+        const glowBlur = effects?.glowBlur || 8;
+        const pulseEnabled = effects?.pulse ?? false;
+        const pulseSpeed = effects?.pulseSpeed || 2000;
         
         // Check if word is clickable and calculate remaining time
         const isClickable = word.clickableAt && word.clickableUntil && 
@@ -742,10 +770,13 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           : 0;
         
         // Pulsing effect when clickable (more intense as time runs out)
-        const pulsePhase = (now % 1000) / 1000; // 0 to 1 over 1 second
+        const basePulsePhase = (now % 1000) / 1000; // 0 to 1 over 1 second
+        const palettePulsePhase = pulseEnabled ? (now % pulseSpeed) / pulseSpeed : 0;
         const pulseIntensity = isClickable 
-          ? 0.8 + 0.2 * Math.sin(pulsePhase * Math.PI * 2) 
-          : 1.0;
+          ? 0.8 + 0.2 * Math.sin(basePulsePhase * Math.PI * 2) 
+          : pulseEnabled
+            ? 0.9 + 0.1 * Math.sin(palettePulsePhase * Math.PI * 2)
+            : 1.0;
         const urgencyPulse = timeRemaining < 1.0 
           ? 1.0 + 0.3 * (1.0 - timeRemaining) // More intense pulse when < 1 second
           : 1.0;
@@ -828,14 +859,32 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           ctx.restore();
           
           // Draw border outline around word (pulsing when clickable)
-          ctx.save();
-          ctx.strokeStyle = vibrantColor;
-          ctx.lineWidth = isClickable ? 2 * urgencyPulse : 1.5;
-          ctx.globalAlpha = Math.max(0.4, Math.min(0.9, glowProps.opacity * 0.8 * pulseIntensity * urgencyPulse));
-          ctx.shadowBlur = isClickable ? 12 * urgencyPulse : 8;
-          ctx.shadowColor = vibrantColor;
-          ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
-          ctx.restore();
+          // Use palette-specific outline if enabled
+          if (outlineEnabled) {
+            ctx.save();
+            ctx.strokeStyle = outlineColor;
+            const effectiveOutlineWidth = isClickable 
+              ? (outlineWidth * 2) * urgencyPulse 
+              : outlineWidth * pulseIntensity;
+            ctx.lineWidth = effectiveOutlineWidth;
+            ctx.globalAlpha = Math.max(0.4, Math.min(0.9, 0.8 * pulseIntensity * urgencyPulse));
+            if (glowEnabled) {
+              ctx.shadowBlur = isClickable ? glowBlur * urgencyPulse : glowBlur * pulseIntensity;
+              ctx.shadowColor = glowColor;
+            }
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.restore();
+          } else {
+            // Fallback to default outline
+            ctx.save();
+            ctx.strokeStyle = vibrantColor;
+            ctx.lineWidth = isClickable ? 2 * urgencyPulse : 1.5;
+            ctx.globalAlpha = Math.max(0.4, Math.min(0.9, glowProps.opacity * 0.8 * pulseIntensity * urgencyPulse));
+            ctx.shadowBlur = isClickable ? 12 * urgencyPulse : 8;
+            ctx.shadowColor = vibrantColor;
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.restore();
+          }
           
           // Draw countdown timer above word when clickable
           if (isClickable && timeRemaining > 0) {
@@ -880,11 +929,20 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             ? glowProps.opacity * pulseIntensity * urgencyPulse
             : glowProps.opacity;
           
+          // Apply palette-specific glow effects
+          const usePaletteGlow = glowEnabled && glowBlur > 0;
+          const effectiveGlowBlurValue = usePaletteGlow 
+            ? glowBlur * pulseIntensity * urgencyPulse
+            : effectiveGlowBlur;
+          const effectiveGlowColor = usePaletteGlow ? glowColor : vibrantColor;
+          
           // Multi-layer glow effect for vibrant appearance (enhanced when clickable)
-          if (glowProps.layers >= 4) {
+          if (glowProps.layers >= 4 || usePaletteGlow) {
             ctx.save();
-            ctx.shadowBlur = Math.max(0, effectiveGlowBlur * (glowProps.intensityMultiplier || 1.0) * 1.2);
-            ctx.shadowColor = vibrantColor;
+            ctx.shadowBlur = Math.max(0, usePaletteGlow 
+              ? effectiveGlowBlurValue * 1.2 
+              : effectiveGlowBlur * (glowProps.intensityMultiplier || 1.0) * 1.2);
+            ctx.shadowColor = effectiveGlowColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity * 0.2));
@@ -894,10 +952,12 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             ctx.restore();
           }
           
-          if (glowProps.layers >= 3) {
+          if (glowProps.layers >= 3 || usePaletteGlow) {
             ctx.save();
-            ctx.shadowBlur = Math.max(0, effectiveGlowBlur * (glowProps.intensityMultiplier || 1.0));
-            ctx.shadowColor = vibrantColor;
+            ctx.shadowBlur = Math.max(0, usePaletteGlow 
+              ? effectiveGlowBlurValue 
+              : effectiveGlowBlur * (glowProps.intensityMultiplier || 1.0));
+            ctx.shadowColor = effectiveGlowColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity * 0.3));
@@ -907,10 +967,12 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             ctx.restore();
           }
           
-          if (glowProps.layers >= 2) {
+          if (glowProps.layers >= 2 || usePaletteGlow) {
             ctx.save();
-            ctx.shadowBlur = Math.max(0, glowProps.shadowBlurInner * urgencyPulse);
-            ctx.shadowColor = vibrantColor;
+            ctx.shadowBlur = Math.max(0, usePaletteGlow 
+              ? effectiveGlowBlurValue * 0.7 
+              : glowProps.shadowBlurInner * urgencyPulse);
+            ctx.shadowColor = effectiveGlowColor;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
             ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity * 0.6));
@@ -920,14 +982,32 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             ctx.restore();
           }
           
+          // Draw outline around letter if enabled
+          if (outlineEnabled) {
+            ctx.save();
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = outlineWidth * pulseIntensity;
+            ctx.globalAlpha = 0.8 * pulseIntensity;
+            ctx.font = `bold ${fontSize}px monospace`;
+            ctx.strokeText(letter.char, x, y);
+            ctx.restore();
+          }
+          
           // Main letter with inner glow and bold styling (pulsing when clickable)
           ctx.save();
-          ctx.shadowBlur = Math.max(0, glowProps.shadowBlurInner * 0.5 * urgencyPulse);
-          ctx.shadowColor = vibrantColor;
+          ctx.shadowBlur = Math.max(0, usePaletteGlow 
+            ? effectiveGlowBlurValue * 0.5 
+            : glowProps.shadowBlurInner * 0.5 * urgencyPulse);
+          ctx.shadowColor = effectiveGlowColor;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
           ctx.globalAlpha = Math.max(0, Math.min(1, effectiveOpacity));
           ctx.fillStyle = vibrantColor;
+          // Apply text shadow from palette if provided
+          if (effects?.textShadow) {
+            // Parse text shadow (simplified - just apply as CSS-like shadow)
+            ctx.shadowBlur = Math.max(ctx.shadowBlur || 0, 10);
+          }
           ctx.font = `bold ${fontSize}px monospace`; // Bold font for better visibility
           ctx.fillText(letter.char, x, y);
           ctx.restore();

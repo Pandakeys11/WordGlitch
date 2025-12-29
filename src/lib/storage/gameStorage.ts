@@ -331,8 +331,28 @@ function saveProgressForId(profileId: string, level: number, unlockedLevels: num
 
 export function saveProgress(level: number, unlockedLevels: number[], bestScore: number): void {
   const profileId = getCurrentProfileId();
-  if (!profileId) return;
+  if (!profileId) {
+    // Backward compatibility: save to old storage key if no profile exists
+    try {
+      const existing = loadProgress();
+      const progress: StoredProgress = {
+        currentLevel: level,
+        unlockedLevels: [...new Set([...(existing?.unlockedLevels || [1]), ...unlockedLevels, level])],
+        bestScores: {
+          ...existing?.bestScores,
+          [level]: Math.max(existing?.bestScores?.[level] || 0, bestScore),
+        },
+      };
+      localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(progress));
+      console.log('Saved progress (no profile):', level);
+      return;
+    } catch (e) {
+      console.error('Failed to save progress (no profile):', e);
+      return;
+    }
+  }
   saveProgressForId(profileId, level, unlockedLevels, bestScore);
+  console.log('Saved progress (with profile):', level);
 }
 
 function loadProgressForId(profileId: string): StoredProgress | null {
