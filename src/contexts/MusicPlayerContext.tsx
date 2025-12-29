@@ -152,17 +152,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         // YouTube iframe API sends various event types
         if (data.event === 'onStateChange') {
           // State 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
-          const state = data.info !== undefined ? data.info : data.data;
+          const state: number = data.info !== undefined ? data.info : data.data;
           
           // Log state changes for blues track debugging
           if (playerState.currentPlayer.id === 'blues') {
-            console.log('Blues track state change:', state, {
+            const stateMap: Record<number, string> = {
               0: 'ended',
               1: 'playing',
               2: 'paused',
               3: 'buffering',
               5: 'cued'
-            }[state]);
+            };
+            console.log('Blues track state change:', state, stateMap[state] || 'unknown');
           }
           
           if (state === 0 && autoAdvanceEnabledRef.current && playerState.isPlaying) {
