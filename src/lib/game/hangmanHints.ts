@@ -125,12 +125,12 @@ const CATEGORY_CONFIG: Record<string, { icon: string; hints: string[] }> = {
 const WORD_CATEGORIES: Record<string, string> = {
   // Nature
   'SUN': 'nature', 'MOON': 'nature', 'STAR': 'nature', 'TREE': 'nature', 'FLOWER': 'nature',
-  'WATER': 'nature', 'FIRE': 'nature', 'EARTH': 'nature', 'WIND': 'nature', 'SKY': 'nature',
+  'EARTH': 'nature', 'SKY': 'nature',
   'SEA': 'nature', 'OCEAN': 'nature', 'RIVER': 'nature', 'LAKE': 'nature', 'FOREST': 'nature',
   'MOUNTAIN': 'nature', 'ROCK': 'nature', 'STONE': 'nature', 'GRASS': 'nature', 'LEAF': 'nature',
   
   // Weather
-  'SNOW': 'weather', 'RAIN': 'weather', 'CLOUD': 'weather', 'STORM': 'weather', 'THUNDER': 'weather',
+  'SNOW': 'weather', 'RAIN': 'weather', 'STORM': 'weather', 'THUNDER': 'weather',
   'LIGHTNING': 'weather', 'FOG': 'weather', 'MIST': 'weather', 'HAIL': 'weather', 'WIND': 'weather',
   
   // Animals
@@ -152,7 +152,7 @@ const WORD_CATEGORIES: Record<string, string> = {
   // Technology
   'CODE': 'tech', 'DATA': 'tech', 'BYTE': 'tech', 'CHIP': 'tech', 'WIFI': 'tech',
   'AI': 'tech', 'API': 'tech', 'APP': 'tech', 'WEB': 'tech', 'CLOUD': 'tech',
-  'SERVER': 'tech', 'PIXEL': 'tech', 'ROBOT': 'tech', 'CYBER': 'tech', 'DIGITAL': 'tech',
+  'SERVER': 'tech', 'PIXEL': 'tech', 'DIGITAL': 'tech',
   'BLOCKCHAIN': 'tech', 'ALGORITHM': 'tech', 'DATABASE': 'tech', 'NETWORK': 'tech', 'SYSTEM': 'tech',
   
   // Crypto
@@ -162,7 +162,7 @@ const WORD_CATEGORIES: Record<string, string> = {
   'ETHEREUM': 'crypto', 'SOLANA': 'crypto', 'POLYGON': 'crypto', 'CARDANO': 'crypto', 'POLKADOT': 'crypto',
   
   // Gaming
-  'GAME': 'gaming', 'PLAY': 'gaming', 'LEVEL': 'gaming', 'BOSS': 'gaming', 'QUEST': 'gaming',
+  'GAME': 'gaming', 'PLAY': 'gaming', 'LEVEL': 'gaming', 'BOSS': 'gaming',
   'LOOT': 'gaming', 'XP': 'gaming', 'HP': 'gaming', 'MP': 'gaming', 'NPC': 'gaming',
   'MARIO': 'gaming', 'ZELDA': 'gaming', 'SONIC': 'gaming', 'TETRIS': 'gaming', 'PACMAN': 'gaming',
   'KIRBY': 'gaming', 'LINK': 'gaming', 'SAMUS': 'gaming', 'YOSHI': 'gaming', 'LUIGI': 'gaming',
@@ -183,7 +183,7 @@ const WORD_CATEGORIES: Record<string, string> = {
   'ELSA': 'cartoon', 'ANNA': 'cartoon', 'OLAF': 'cartoon', 'SIMBA': 'cartoon', 'NEMO': 'cartoon',
   
   // Sounds & Actions
-  'BONK': 'sound', 'BOOP': 'sound', 'YEET': 'action', 'PLOP': 'sound', 'SPLAT': 'sound',
+  'BONK': 'sound', 'BOOP': 'sound', 'PLOP': 'sound', 'SPLAT': 'sound',
   'BOOM': 'sound', 'BANG': 'sound', 'CRASH': 'sound', 'ZAP': 'sound', 'POW': 'sound',
   'WHOOSH': 'sound', 'SWOOSH': 'sound', 'ZING': 'sound', 'BUZZ': 'sound', 'FIZZ': 'sound',
   
