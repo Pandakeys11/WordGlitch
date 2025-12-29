@@ -4,7 +4,6 @@ import React from 'react';
 import { GameWord } from '@/types/game';
 import { ColorPalette, getPalette, DEFAULT_PALETTE_ID } from '@/lib/colorPalettes';
 import { loadSettings } from '@/lib/storage/gameStorage';
-import GameMusicPlayer from './GameMusicPlayer';
 import styles from './WordList.module.css';
 
 interface WordListProps {
@@ -14,8 +13,9 @@ interface WordListProps {
 }
 
 export default function WordList({ words, palette, isPaused = false }: WordListProps) {
-  const activeWords = words.filter(w => !w.found);
-  const foundWords = words.filter(w => w.found);
+  // Filter out fake words from the word list - they shouldn't be shown to players
+  const activeWords = words.filter(w => !w.found && !w.isFake);
+  const foundWords = words.filter(w => w.found && !w.isFake);
   
   // Get palette (use provided or load from settings)
   const currentPalette = palette || (() => {
@@ -32,9 +32,6 @@ export default function WordList({ words, palette, isPaused = false }: WordListP
 
   return (
     <div className={styles.wordList}>
-      <div className={styles.musicPlayerContainer}>
-        <GameMusicPlayer palette={currentPalette} isPaused={isPaused} />
-      </div>
       <div className={styles.wordsContent}>
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Find These Words</h3>

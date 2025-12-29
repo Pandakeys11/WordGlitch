@@ -256,7 +256,7 @@ export default function RulesScreen({ onBack }: RulesScreenProps) {
                   <strong>Levels 21+:</strong> Extreme difficulty - Very short visibility (1-2 seconds), maximum glitch chaos
                 </li>
                 <li>
-                  <strong>Text Size:</strong> After level 14, text gradually gets smaller, making words harder to spot
+                  <strong>Text Size:</strong> Letter glitch size only updates on boss levels (every 10 levels), getting progressively smaller
                 </li>
                 <li>
                   <strong>Color Palettes:</strong> Different palettes have different difficulty levels affecting text size and multipliers
@@ -266,21 +266,18 @@ export default function RulesScreen({ onBack }: RulesScreenProps) {
               <div className={styles.highlightBox} style={{ marginTop: '1.5rem' }}>
                 <h3 className={styles.highlightTitle}>Boss Levels - Mandatory Palette Requirements</h3>
                 <p className={styles.highlightText}>
-                  Certain levels require you to use specific palette difficulties to progress:
+                  Boss levels occur every 10 levels and require hard difficulty palettes:
                 </p>
                 <ul className={styles.list} style={{ marginTop: '1rem' }}>
                   <li>
-                    <strong>Levels 5 & 10:</strong> Must use <strong>Average</strong> difficulty palette (1.5x multiplier)
+                    <strong>Levels 10, 20, 30, 40, 50, 60, 70, 80, 90, 100+:</strong> Must use <strong>Hard</strong> difficulty palette (2.0x multiplier)
                   </li>
                   <li>
-                    <strong>Levels 15, 25, 35, 50:</strong> Must use <strong>Hard</strong> difficulty palette (2.0x multiplier)
-                  </li>
-                  <li>
-                    <strong>After Level 50:</strong> Random levels require <strong>Hard</strong> difficulty palette
+                    <strong>Text Size:</strong> Letter glitch size only updates on boss levels, getting smaller every 10 levels
                   </li>
                 </ul>
                 <p className={styles.highlightText} style={{ marginTop: '1rem', marginBottom: 0 }}>
-                  <strong>Important:</strong> You cannot complete these boss levels without the required palette. 
+                  <strong>Important:</strong> You cannot complete these boss levels without a hard difficulty palette. 
                   The palette will be automatically set when you enter the level, and you cannot change it until you complete the level.
                 </p>
               </div>

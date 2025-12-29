@@ -192,7 +192,7 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
     const originalColorsRef = useRef<string[]>(defaultColors);
 
     // Store sizing in refs so they can be accessed in closures
-    // Always get fresh sizing based on palette difficulty and level (auto-reduces after level 14)
+    // Always get fresh sizing based on palette difficulty and level (updates every 10 levels on boss levels)
     const getCurrentSizing = () => getTextSizingForDifficulty(activePalette.difficulty, level.level);
     const sizingRef = useRef(getCurrentSizing());
     
@@ -437,7 +437,30 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         } else if (word.isVisible) {
           // Visible words - use vibrant color that blends with glitch but stands out when visible
           const baseColor = getWordColor();
-          const vibrantColor = getVibrantColor(level.level, baseColor);
+          let vibrantColor = getVibrantColor(level.level, baseColor);
+          
+          // Fake words use a slightly different color (more red/orange tint) to subtly hint they're fake
+          if (word.isFake) {
+            // getVibrantColor returns a hex string, so parse it and modify
+            const rgb = hexToRgb(vibrantColor);
+            if (rgb) {
+              // Add red tint and make slightly darker/more muted
+              rgb.r = Math.min(255, rgb.r + 30);
+              rgb.g = Math.max(0, rgb.g - 15);
+              rgb.b = Math.max(0, rgb.b - 15);
+              vibrantColor = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+            } else {
+              // If parsing failed, try to parse as RGB string directly
+              const rgbMatch = vibrantColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+              if (rgbMatch) {
+                const r = Math.min(255, parseInt(rgbMatch[1]) + 30);
+                const g = Math.max(0, parseInt(rgbMatch[2]) - 15);
+                const b = Math.max(0, parseInt(rgbMatch[3]) - 15);
+                vibrantColor = `rgb(${r},${g},${b})`;
+              }
+            }
+          }
+          
           for (let i = 0; i < word.word.length; i++) {
             const index = word.startRow * cols + (word.startCol + i);
             if (index >= 0 && index < letters.length && !letters[index].isFrozen) {
@@ -1052,13 +1075,22 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           clickY >= textStartY &&
           clickY <= textEndY
         ) {
+          // Check if this is a fake word
+          if (word.isFake) {
+            // Fake word clicked - always count as a miss/penalty
+            // Pass the word text with a special flag (prepend with special marker)
+            onWordFound('FAKE:' + word.word, false);
+            foundClickableWord = true;
+            break;
+          }
+          
           // Check if word is currently clickable
           const now = Date.now();
           const isClickable = word.clickableAt && word.clickableUntil && 
                              now >= word.clickableAt && now <= word.clickableUntil;
           
           if (isClickable) {
-            // Correct click - word is clickable
+            // Correct click - word is clickable and not fake
             onWordFound(word.word, true);
             foundClickableWord = true;
           } else {

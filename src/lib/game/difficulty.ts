@@ -11,16 +11,18 @@ export function getDifficultyForLevel(level: number): Difficulty {
 
 /**
  * Get text sizing based on color palette difficulty and level
- * Text size is determined by palette difficulty, with additional level-based scaling after level 14
+ * Text size is determined by palette difficulty, with level-based scaling only on boss levels (every 10 levels)
  * Easy palettes: 100% of base (larger, closer letter glitch - baseline)
  * Average palettes: 75% of base (25% smaller)
  * Hard palettes: 55% of base (45% smaller)
  * 
- * After level 14: Text gradually gets smaller (similar to palette difficulty scaling)
- * Level 14-20: Gradual reduction from palette size to 85% of palette size
- * Level 21-30: Further reduction to 70% of palette size
- * Level 31-40: Further reduction to 55% of palette size
- * Level 41+: Minimum at 45% of palette size (similar to hard palette)
+ * Text sizing only updates on boss levels (every 10 levels: 10, 20, 30, 40, etc.)
+ * Level 1-9: 100% of palette size
+ * Level 10-19: 90% of palette size (boss level 10)
+ * Level 20-29: 80% of palette size (boss level 20)
+ * Level 30-39: 70% of palette size (boss level 30)
+ * Level 40-49: 60% of palette size (boss level 40)
+ * Level 50+: 50% of palette size (boss level 50+)
  */
 export interface TextSizing {
   fontSize: number;
@@ -57,26 +59,21 @@ export function getTextSizingForDifficulty(
       break;
   }
 
-  // Apply level-based scaling after level 14 (gradual reduction)
+  // Apply level-based scaling only on boss levels (every 10 levels)
+  // Text sizing only changes when you reach a new boss level tier
   let levelMultiplier = 1.0;
-  if (level && level >= 14) {
-    if (level <= 20) {
-      // Levels 14-20: Gradual reduction from 100% to 85% of palette size
-      // Level 14 = 100%, Level 20 = 85% (linear interpolation)
-      const progress = (level - 14) / (20 - 14); // 0 to 1
-      levelMultiplier = 1.0 - (progress * 0.15); // 1.0 to 0.85
-    } else if (level <= 30) {
-      // Levels 21-30: Further reduction from 85% to 70% of palette size
-      const progress = (level - 21) / (30 - 21); // 0 to 1
-      levelMultiplier = 0.85 - (progress * 0.15); // 0.85 to 0.70
-    } else if (level <= 40) {
-      // Levels 31-40: Further reduction from 70% to 55% of palette size
-      const progress = (level - 31) / (40 - 31); // 0 to 1
-      levelMultiplier = 0.70 - (progress * 0.15); // 0.70 to 0.55
-    } else {
-      // Levels 41+: Minimum at 45% of palette size
-      levelMultiplier = 0.45;
-    }
+  if (level && level >= 10) {
+    // Determine which boss tier this level belongs to
+    // Levels 10-19: tier 1 (90%), Levels 20-29: tier 2 (80%), etc.
+    const bossTier = Math.floor(level / 10);
+    
+    // Each boss tier reduces size by 10% (starts at 90% for tier 1, down to 50% minimum)
+    // Tier 1 (level 10): 90%
+    // Tier 2 (level 20): 80%
+    // Tier 3 (level 30): 70%
+    // Tier 4 (level 40): 60%
+    // Tier 5+ (level 50+): 50% (minimum)
+    levelMultiplier = Math.max(0.50, 1.0 - (bossTier * 0.10));
   }
 
   // Combine palette and level multipliers

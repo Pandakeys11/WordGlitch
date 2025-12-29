@@ -25,6 +25,7 @@ export interface GameWord {
   visibleDuration: number;    // how long word will be visible (ms)
   clickableAt?: number;       // timestamp when word becomes clickable (after fully appearing)
   clickableUntil?: number;    // timestamp when word stops being clickable
+  isFake?: boolean;           // true if this is a fake/tricky word that should not be clicked
 }
 
 export interface GameScore {

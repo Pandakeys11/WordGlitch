@@ -5,11 +5,8 @@ import {
   StoredLeaderboard,
   GameSettings,
   ProfileMetadata,
-  StoredProfiles,
-  StoredAntFarm
+  StoredProfiles
 } from './types';
-import { AntFarm } from '@/types/antFarm';
-import { generateStartingAnts } from '@/lib/antFarm/antGenerator';
 import { GameStats, Achievement, LeaderboardEntry } from '@/types/profile';
 import { GameSession } from '@/types/game';
 import { STORAGE_KEYS } from '@/lib/constants';
@@ -795,107 +792,4 @@ export function updateStats(session: GameSession): void {
   }
 }
 
-// Ant Farm Storage
-function getAntFarmKey(profileId: string): string {
-  return `word-glitch-antfarm-${profileId}`;
-}
-
-export function loadAntFarm(): AntFarm | null {
-  const profileId = getCurrentProfileId();
-  if (!profileId) {
-    return null;
-  }
-
-  try {
-    const data = localStorage.getItem(getAntFarmKey(profileId));
-    if (!data) {
-      // Return default ant farm with 2 starting ants
-      const defaultFarm: AntFarm = {
-        ants: generateStartingAnts(800, 600),
-        items: [],
-        layout: {
-          width: 800,
-          height: 600,
-          background: 'bg-sand',
-          tunnels: [],
-          chambers: [],
-        },
-        currency: 0,
-        totalEarned: 0,
-        lastUpdated: Date.now(),
-      };
-      // Save the default farm
-      saveAntFarm(defaultFarm);
-      return defaultFarm;
-    }
-    const farm = JSON.parse(data) as AntFarm;
-    // Ensure farm has at least 2 ants if it's empty (migration)
-    if (farm.ants.length === 0) {
-      farm.ants = generateStartingAnts(farm.layout.width || 800, farm.layout.height || 600);
-      saveAntFarm(farm);
-    }
-    return farm;
-  } catch {
-    // Return default ant farm with 2 starting ants on error
-    const defaultFarm: AntFarm = {
-      ants: generateStartingAnts(800, 600),
-      items: [],
-      layout: {
-        width: 800,
-        height: 600,
-        background: 'bg-sand',
-        tunnels: [],
-        chambers: [],
-      },
-      currency: 0,
-      totalEarned: 0,
-      lastUpdated: Date.now(),
-    };
-    return defaultFarm;
-  }
-}
-
-export function saveAntFarm(farm: AntFarm): void {
-  const profileId = getCurrentProfileId();
-  if (!profileId) {
-    console.warn('Cannot save ant farm: No active profile');
-    return;
-  }
-
-  try {
-    const data: StoredAntFarm = {
-      ants: farm.ants,
-      items: farm.items,
-      layout: farm.layout,
-      lastUpdated: Date.now(),
-    };
-    localStorage.setItem(getAntFarmKey(profileId), JSON.stringify(data));
-  } catch (err) {
-    console.error('Failed to save ant farm:', err);
-  }
-}
-
-export function addAntToFarm(ant: any): void {
-  const farm = loadAntFarm();
-  if (!farm) return;
-
-  farm.ants.push(ant);
-  saveAntFarm(farm);
-}
-
-export function addItemToFarm(item: any): void {
-  const farm = loadAntFarm();
-  if (!farm) return;
-
-  farm.items.push(item);
-  saveAntFarm(farm);
-}
-
-export function removeItemFromFarm(itemId: string): void {
-  const farm = loadAntFarm();
-  if (!farm) return;
-
-  farm.items = farm.items.filter(item => item.id !== itemId);
-  saveAntFarm(farm);
-}
 

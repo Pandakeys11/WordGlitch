@@ -37,6 +37,19 @@
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.profileCardWrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.musicPlayerWrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .statGroup {
@@ -203,6 +216,19 @@
 
   .topBarActions {
     gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .profileCardWrapper {
+    order: -2;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .musicPlayerWrapper {
+    order: -1;
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
 
   .actionButton,
@@ -248,6 +274,18 @@
     order: 1;
     justify-content: flex-end;
     align-self: flex-end;
+  }
+
+  .profileCardWrapper {
+    order: -2;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .musicPlayerWrapper {
+    order: -1;
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
 
   .stat {

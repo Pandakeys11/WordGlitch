@@ -469,7 +469,8 @@ export class WordManager {
    * Mark a word as found
    */
   markWordFound(wordText: string): boolean {
-    const word = this.words.find(w => w.word === wordText && !w.found);
+    // Don't allow marking fake words as found
+    const word = this.words.find(w => w.word === wordText && !w.found && !w.isFake);
     if (word && this.isWordClickable(word)) {
       word.found = true;
       word.foundAt = Date.now();

@@ -42,10 +42,4 @@ export interface StoredProfiles {
   profiles: ProfileMetadata[];
 }
 
-export interface StoredAntFarm {
-  ants: any[]; // Ant[] from antFarm types
-  items: any[]; // FarmItem[] from antFarm types
-  layout: any; // FarmLayout from antFarm types
-  lastUpdated: number;
-}
 

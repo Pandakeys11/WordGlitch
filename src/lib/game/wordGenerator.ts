@@ -79,6 +79,7 @@ export function generateWords(
   let attempts = 0;
   const maxAttempts = level.wordCount * 50; // More attempts for more words
 
+  // Generate real words first
   while (words.length < level.wordCount && attempts < maxAttempts) {
     attempts++;
     
@@ -113,12 +114,70 @@ export function generateWords(
         points,
         isVisible: false, // Start hidden
         visibleDuration,
+        isFake: false,
       });
       // Mark all character positions as used to prevent overlaps
       for (let i = 0; i < word.length; i++) {
         usedPositions.add(`${position.col + i},${position.row}`);
       }
       usedWords.add(word);
+    }
+  }
+
+  // Generate fake/tricky words
+  const fakeWordCount = getFakeWordCount(level);
+  const fakeWordsGenerated: string[] = [];
+  let fakeAttempts = 0;
+  const maxFakeAttempts = fakeWordCount * 50;
+
+  // Use real words as base to generate fake words
+  const realWordsForFakes = words.filter(w => !w.isFake).map(w => w.word);
+  
+  while (fakeWordsGenerated.length < fakeWordCount && fakeAttempts < maxFakeAttempts && realWordsForFakes.length > 0) {
+    fakeAttempts++;
+    
+    // Pick a random real word to create a fake version of
+    const baseWord = realWordsForFakes[Math.floor(Math.random() * realWordsForFakes.length)];
+    const fakeWord = generateFakeWord(baseWord);
+    
+    // Make sure fake word is different from all real words and other fake words
+    if (fakeWordsGenerated.includes(fakeWord) || validWords.includes(fakeWord)) {
+      continue;
+    }
+    
+    // Check if fake word meets length requirements
+    if (fakeWord.length < level.minWordLength || fakeWord.length > level.maxWordLength) {
+      continue;
+    }
+    
+    const position = findValidPosition(
+      fakeWord, 
+      cols, 
+      playableRows, 
+      usedPositions, 
+      level,
+      playableStartRow
+    );
+
+    if (position) {
+      // Fake words don't give points, but use same visibility duration
+      const durationRange = getWordVisibilityDuration(level.level);
+      const visibleDuration = durationRange.min + Math.random() * (durationRange.max - durationRange.min);
+      words.push({
+        word: fakeWord,
+        startCol: position.col,
+        startRow: position.row,
+        found: false,
+        points: 0, // Fake words don't give points
+        isVisible: false, // Start hidden
+        visibleDuration,
+        isFake: true, // Mark as fake word
+      });
+      // Mark all character positions as used to prevent overlaps
+      for (let i = 0; i < fakeWord.length; i++) {
+        usedPositions.add(`${position.col + i},${position.row}`);
+      }
+      fakeWordsGenerated.push(fakeWord);
     }
   }
 
@@ -235,10 +294,108 @@ function generateFallbackWords(
       points: calculateWordPoints(word, level),
       isVisible: false,
       visibleDuration,
+      isFake: false,
     });
   }
   
   return words;
+}
+
+/**
+ * Generate fake/tricky words that look similar to real words
+ * These are designed to confuse players and trick them into clicking
+ */
+function generateFakeWord(realWord: string): string {
+  const word = realWord.toUpperCase();
+  const length = word.length;
+  
+  // Different strategies for creating fake words
+  const strategies = [
+    // Strategy 1: Change one letter (most common)
+    () => {
+      if (length < 2) return null;
+      const pos = Math.floor(Math.random() * length);
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const newChar = chars[Math.floor(Math.random() * chars.length)];
+      return word.substring(0, pos) + newChar + word.substring(pos + 1);
+    },
+    // Strategy 2: Swap two adjacent letters
+    () => {
+      if (length < 2) return null;
+      const pos = Math.floor(Math.random() * (length - 1));
+      const chars = word.split('');
+      [chars[pos], chars[pos + 1]] = [chars[pos + 1], chars[pos]];
+      return chars.join('');
+    },
+    // Strategy 3: Add an extra letter
+    () => {
+      if (length >= 8) return null; // Don't make words too long
+      const pos = Math.floor(Math.random() * (length + 1));
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const newChar = chars[Math.floor(Math.random() * chars.length)];
+      return word.substring(0, pos) + newChar + word.substring(pos);
+    },
+    // Strategy 4: Remove one letter (only for longer words)
+    () => {
+      if (length <= 3) return null; // Don't make words too short
+      const pos = Math.floor(Math.random() * length);
+      return word.substring(0, pos) + word.substring(pos + 1);
+    },
+    // Strategy 5: Change last letter to similar looking letter
+    () => {
+      if (length < 2) return null;
+      const lastChar = word[length - 1];
+      const similarChars: { [key: string]: string[] } = {
+        'I': ['L', '1', 'T'],
+        'O': ['0', 'Q', 'D'],
+        'E': ['F', 'B'],
+        'S': ['5', 'Z'],
+        'Z': ['2', 'S'],
+        'A': ['4', 'H'],
+        'R': ['P', 'B'],
+        'N': ['M', 'H'],
+        'U': ['V', 'Y'],
+        'V': ['U', 'Y'],
+      };
+      const replacements = similarChars[lastChar] || ['X', 'Y', 'Z'];
+      const newChar = replacements[Math.floor(Math.random() * replacements.length)];
+      return word.substring(0, length - 1) + newChar;
+    },
+  ];
+  
+  // Try each strategy until one works
+  for (let i = 0; i < strategies.length * 2; i++) {
+    const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+    const fakeWord = strategy();
+    if (fakeWord && fakeWord !== word && fakeWord.length >= 2) {
+      return fakeWord;
+    }
+  }
+  
+  // Fallback: just change a random letter
+  if (length >= 2) {
+    const pos = Math.floor(Math.random() * length);
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let newChar = chars[Math.floor(Math.random() * chars.length)];
+    while (newChar === word[pos]) {
+      newChar = chars[Math.floor(Math.random() * chars.length)];
+    }
+    return word.substring(0, pos) + newChar + word.substring(pos + 1);
+  }
+  
+  return word + 'X'; // Last resort fallback
+}
+
+/**
+ * Calculate how many fake words to generate based on level
+ * More fake words appear at higher levels
+ */
+function getFakeWordCount(level: Level): number {
+  if (level.level <= 5) return 0; // No fake words in early levels
+  if (level.level <= 10) return 1; // 1 fake word in levels 6-10
+  if (level.level <= 20) return Math.floor(level.wordCount * 0.2); // 20% fake words
+  if (level.level <= 30) return Math.floor(level.wordCount * 0.25); // 25% fake words
+  return Math.floor(level.wordCount * 0.3); // 30% fake words at higher levels
 }
 
 function calculateWordPoints(word: string, level: Level): number {

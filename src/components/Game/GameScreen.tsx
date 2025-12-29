@@ -11,7 +11,7 @@ import { calculateComboMultiplier } from '@/lib/game/scoring';
 import { getDifficultyMultiplier } from '@/lib/colorPalettes';
 import { WordManager } from '@/lib/game/wordManager';
 import { updateStats, saveScore, loadProfile } from '@/lib/storage/gameStorage';
-import { syncCurrencyWithTotalScore } from '@/lib/antFarm/currency';
+import { syncCurrencyWithTotalScore } from '@/lib/currency';
 import { unlockLevel } from '@/lib/game/levelSystem';
 import { ACHIEVEMENTS } from '@/lib/constants';
 import { saveAchievement, hasAchievement, loadSettings, saveSettings } from '@/lib/storage/gameStorage';
@@ -156,7 +156,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     const levelConfig = initializeLevel(level);
     setCurrentLevel(levelConfig);
     
-    // Get dynamic text sizing based on palette difficulty and level (auto-reduces after level 14)
+    // Get dynamic text sizing based on palette difficulty and level (updates every 10 levels on boss levels)
     const textSizing = getTextSizingForDifficulty(paletteToUse.difficulty, level);
     const charWidth = textSizing.charWidth;
     const charHeight = textSizing.charHeight;
@@ -464,6 +464,14 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     const newAttempts = attemptsRef.current + 1;
     attemptsRef.current = newAttempts;
     setAttempts(newAttempts);
+    
+    // Check if this is a fake word click (marked with "FAKE:" prefix)
+    if (word.startsWith('FAKE:')) {
+      // Fake word clicked - this is a penalty/miss
+      // Could add visual feedback here (e.g., screen shake, red flash)
+      // For now, just count as an attempt (already done above)
+      return;
+    }
     
     // If it's not a correct click, it's a miss - but don't reset combo
     // Combo is based on total words found, not consecutive finds
@@ -790,6 +798,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         onHome={handleHome}
         onRestart={handleRestart}
         currentPaletteId={currentPalette.id}
+        isPaused={isPaused}
       />
       {isMandatoryLevel && mandatoryPaletteDifficulty && (
         <div className={styles.mandatoryPaletteNotice}>

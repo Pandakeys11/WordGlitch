@@ -9,7 +9,7 @@ import { initializeLevel } from '@/lib/game/difficulty';
 import { getPalette, DEFAULT_PALETTE_ID, ColorPalette } from '@/lib/colorPalettes';
 import PaletteToggle from '../UI/PaletteToggle';
 import { EyeIcon, EyeOffIcon, PlayIcon, UserIcon, TrophyIcon, BookIcon, ZapIcon } from '../UI/GameIcons';
-import { getCurrencyBalance, syncCurrencyWithTotalScore } from '@/lib/antFarm/currency';
+import { getCurrencyBalance, syncCurrencyWithTotalScore } from '@/lib/currency';
 import styles from './MenuScreen.module.css';
 
 interface MenuScreenProps {
@@ -178,6 +178,11 @@ export default function MenuScreen({
 
       {isUIVisible && (
         <div className={styles.content}>
+          <img 
+            src="/Playground_Title_white.png" 
+            alt="Playground Tools" 
+            className={styles.logo}
+          />
         <div className={styles.header}>
           <h1 
             className={styles.title}

@@ -3,6 +3,8 @@
 import React from 'react';
 import { HomeIcon, RestartIcon, PauseIcon } from '../UI/GameIcons';
 import { getPalette, ColorPalette } from '@/lib/colorPalettes';
+import GameMusicPlayer from './GameMusicPlayer';
+import GameProfileCard from './GameProfileCard';
 import styles from './GameHUD.module.css';
 
 interface GameHUDProps {
@@ -17,6 +19,7 @@ interface GameHUDProps {
   onHome?: () => void;
   onRestart?: () => void;
   currentPaletteId?: string;
+  isPaused?: boolean;
 }
 
 export default function GameHUD({
@@ -31,6 +34,7 @@ export default function GameHUD({
   onHome,
   onRestart,
   currentPaletteId = 'ocean',
+  isPaused = false,
 }: GameHUDProps) {
   const palette = getPalette(currentPaletteId);
   
@@ -87,6 +91,12 @@ export default function GameHUD({
           )}
         </div>
         <div className={styles.topBarActions}>
+          <div className={styles.profileCardWrapper}>
+            <GameProfileCard />
+          </div>
+          <div className={styles.musicPlayerWrapper}>
+            <GameMusicPlayer palette={palette} isPaused={isPaused} />
+          </div>
           {onHome && (
             <button className={styles.actionButton} onClick={onHome} aria-label="Home">
               <HomeIcon className={styles.icon} size={20} />

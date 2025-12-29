@@ -14,7 +14,7 @@ import {
   deleteProfile,
   resetProfile
 } from '@/lib/storage/gameStorage';
-import { syncCurrencyWithTotalScore, getCurrencyBalance } from '@/lib/antFarm/currency';
+import { syncCurrencyWithTotalScore, getCurrencyBalance } from '@/lib/currency';
 import { GameStats } from '@/types/profile';
 import { ProfileMetadata } from '@/lib/storage/types';
 import {

@@ -39,7 +39,6 @@ export default function AntFarmView({
   onFarmUpdate,
   onAntClick,
   interactive = true,
-  selectedFoodType = 'water',
 }: AntFarmViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AntEngine | null>(null);
@@ -379,10 +378,10 @@ export default function AntFarmView({
       clickedAnt.hunger = Math.max(0, clickedAnt.hunger - 20);
     } else {
       setSelectedAnt(null);
-      // Add selected food type at click location
+      // Add food at click location
       const gridX = Math.floor(x / PIXEL_SIZE) * PIXEL_SIZE;
       const gridY = Math.floor(y / PIXEL_SIZE) * PIXEL_SIZE;
-      engineRef.current.addFoodSource(gridX, gridY, 100, selectedFoodType);
+      engineRef.current.addFoodSource(gridX, gridY, 100, 'water');
     }
   }, [interactive, onAntClick]);
 

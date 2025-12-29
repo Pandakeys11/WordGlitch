@@ -2,40 +2,27 @@ export const APP_VERSION = '1.0.0';
 
 /**
  * Mandatory Palette Requirements for Boss Levels
- * Certain levels require specific palette difficulties to progress
+ * Boss levels occur every 10 levels and require hard difficulty palettes
+ * Boss levels: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, etc.
  */
-export const MANDATORY_AVERAGE_LEVELS = [5, 10] as const;
-export const MANDATORY_HARD_LEVELS = [15, 25, 35, 50] as const;
+export const MANDATORY_AVERAGE_LEVELS: readonly number[] = []; // No longer used - all boss levels are hard
+
+/**
+ * Check if a level is a boss level (every 10 levels)
+ */
+export function isBossLevel(level: number): boolean {
+  return level % 10 === 0 && level >= 10;
+}
 
 /**
  * Get mandatory palette difficulty for a level
- * Returns 'average' for levels 5 and 10
- * Returns 'hard' for levels 15, 25, 35, 50, and random levels after 50
+ * Returns 'hard' for boss levels (every 10 levels: 10, 20, 30, 40, etc.)
  * Returns null if no mandatory requirement
  */
 export function getMandatoryPaletteDifficulty(level: number): 'average' | 'hard' | null {
-  // Check fixed average levels
-  if (MANDATORY_AVERAGE_LEVELS.includes(level as any)) {
-    return 'average';
-  }
-  
-  // Check fixed hard levels
-  if (MANDATORY_HARD_LEVELS.includes(level as any)) {
+  // Boss levels occur every 10 levels and require hard palette
+  if (isBossLevel(level)) {
     return 'hard';
-  }
-  
-  // Random hard levels after level 50
-  // Use deterministic random based on level number for consistency
-  if (level > 50) {
-    // Simple seeded random: use level as seed
-    // This ensures same level always has same requirement per player
-    const seed = level * 7919; // Prime number for better distribution
-    const random = ((seed * 9301 + 49297) % 233280) / 233280;
-    
-    // 30% chance for hard requirement after level 50
-    if (random < 0.3) {
-      return 'hard';
-    }
   }
   
   return null;
@@ -49,20 +36,18 @@ export function hasMandatoryPalette(level: number): boolean {
 }
 
 /**
- * Get all hard boss levels (fixed + random after 50)
+ * Get all hard boss levels (every 10 levels starting from level 10)
  * Useful for display purposes
  */
 export function getHardBossLevels(upToLevel: number = 100): number[] {
-  const hardLevels: number[] = [...MANDATORY_HARD_LEVELS];
+  const hardLevels: number[] = [];
   
-  // Add random hard levels after 50
-  for (let level = 51; level <= upToLevel; level++) {
-    if (getMandatoryPaletteDifficulty(level) === 'hard') {
-      hardLevels.push(level);
-    }
+  // Boss levels occur every 10 levels starting from level 10
+  for (let level = 10; level <= upToLevel; level += 10) {
+    hardLevels.push(level);
   }
   
-  return hardLevels.sort((a, b) => a - b);
+  return hardLevels;
 }
 
 // Game Constants
@@ -184,185 +169,296 @@ export const WORD_LISTS = {
     'CAT', 'DOG', 'SUN', 'MOON', 'STAR', 'TREE', 'BOOK', 'BALL', 'FISH', 'BIRD',
     'HOME', 'LOVE', 'HAPPY', 'SMILE', 'MUSIC', 'DANCE', 'COLOR', 'LIGHT', 'DARK', 'BRIGHT',
     'WATER', 'FIRE', 'EARTH', 'WIND', 'SNOW', 'RAIN', 'CLOUD', 'SKY', 'SEA', 'LAND',
+    'FALL', 'WAVE', 'STONE', 'ROCK', 'WOOD', 'GRASS', 'LEAF', 'ROSE', 'LAKE', 'RIVER',
     
-    // Trending News (3-4 letters)
-    'AI', 'NFT', 'WEB', 'APP', 'API', 'CEO', 'IPO', 'GDP', 'USD', 'EUR',
+    // Food & Drink (3-4 letters)
+    'CAKE', 'PIE', 'BREAD', 'RICE', 'MEAT', 'FISH', 'EGG', 'MILK', 'JUICE', 'SODA',
+    'TEA', 'COFFEE', 'BEEF', 'PORK', 'CHICKEN', 'APPLE', 'BANANA', 'GRAPE', 'ORANGE', 'LEMON',
+    
+    // Animals (3-4 letters)
+    'BEAR', 'WOLF', 'DEER', 'FOX', 'RABBIT', 'MOUSE', 'SNAKE', 'LION', 'TIGER', 'EAGLE',
+    'OWL', 'CROW', 'DUCK', 'GOOSE', 'SWAN', 'SHARK', 'WHALE', 'DOLPHIN', 'SEAL', 'CRAB',
+    
+    // Technology & Computing (3-4 letters)
+    'AI', 'NFT', 'WEB', 'APP', 'API', 'CODE', 'DATA', 'BYTE', 'CHIP', 'DISK',
+    'FILE', 'GAME', 'HACK', 'LINK', 'WIFI', 'USB', 'CPU', 'GPU', 'RAM', 'ROM',
     
     // Finance Basics (3-4 letters)
     'CASH', 'BANK', 'COIN', 'GOLD', 'DEBT', 'LOAN', 'TAX', 'FEE', 'BUY', 'SELL',
+    'PAY', 'SAVE', 'COST', 'PRICE', 'PAID', 'BILL', 'CARD', 'MONEY', 'USD', 'EUR',
     
-    // Consumer Products (3-4 letters)
-    'IPAD', 'XBOX', 'SONY', 'META', 'APPLE', 'GOOGLE',
+    // Consumer Products & Brands (3-4 letters)
+    'IPAD', 'XBOX', 'SONY', 'META', 'APPLE', 'GOOGLE', 'NIKE', 'ADIDAS', 'COCA', 'PEPSI',
     
-    // Cartoon Characters (3-4 letters)
+    // Cartoon & Animation (3-4 letters)
     'BART', 'HOMER', 'LISA', 'MIKE', 'SUL', 'NEMO', 'DORY', 'WOODY', 'BUZZ', 'ELSA',
+    'ANNA', 'OLAF', 'JACK', 'BELLE', 'ARIEL', 'MULAN', 'POCAH', 'ALADDIN', 'SIMBA', 'NALA',
     
-    // Anime Characters (3-4 letters)
-    'GOKU', 'ASH', 'PIKA', 'ZORO', 'LUFFY', 'NARU', 'SASU', 'SAKU',
+    // Anime Characters (3-5 letters)
+    'GOKU', 'ASH', 'PIKA', 'ZORO', 'LUFFY', 'NARU', 'SASU', 'SAKU', 'ERZA', 'NATSU',
+    'L', 'KIRA', 'GON', 'ED', 'AL', 'ROY', 'RIZA', 'HINATA', 'SAKURA', 'LEVI',
     
     // Movie Characters (3-4 letters)
-    'LUKE', 'HAN', 'YODA', 'BOND', 'BAT', 'THOR', 'CAP', 'HULK', 'IRON',
+    'LUKE', 'HAN', 'YODA', 'BOND', 'BAT', 'THOR', 'CAP', 'HULK', 'IRON', 'SPIDER',
+    'SUPER', 'WONDER', 'FLASH', 'AQUA', 'GREEN', 'ARROW', 'JOKER', 'BANE', 'VENOM', 'DEAD',
     
-    // Web3 Basics (3-4 letters)
-    'ETH', 'BTC', 'COIN', 'NODE', 'HASH', 'MINT', 'BURN', 'SWAP',
+    // Web3 & Crypto (3-4 letters)
+    'ETH', 'BTC', 'COIN', 'NODE', 'HASH', 'MINT', 'BURN', 'SWAP', 'SOL', 'ADA',
+    'DOT', 'MATIC', 'AVAX', 'LINK', 'UNI', 'AAVE', 'COMP', 'MKR', 'SNX', 'CRV',
     
     // DeFi Basics (3-4 letters)
-    'DEFI', 'SWAP', 'POOL', 'FARM', 'DEX', 'CEX', 'APY', 'TVL',
+    'DEFI', 'SWAP', 'POOL', 'FARM', 'DEX', 'CEX', 'APY', 'TVL', 'LP', 'DAO',
+    'NFT', 'GOV', 'VE', 'YIELD', 'STAKE', 'LOCK', 'VOTE', 'BUY', 'SELL', 'TRADE',
+    
+    // Sports (3-4 letters)
+    'BALL', 'GOAL', 'TEAM', 'PLAY', 'GAME', 'WIN', 'LOSE', 'SCORE', 'RUN', 'JUMP',
+    'KICK', 'THROW', 'CATCH', 'SWIM', 'DIVE', 'RIDE', 'BIKE', 'SKATE', 'SKI', 'SURF',
+    
+    // Gaming (3-4 letters)
+    'PLAY', 'GAME', 'WIN', 'LOSE', 'LEVEL', 'XP', 'HP', 'MP', 'BOSS', 'NPC',
+    'QUEST', 'LOOT', 'DROP', 'RARE', 'EPIC', 'LEGEND', 'RANK', 'TIER', 'CLASS', 'SKILL',
   ],
   medium: [
     // Technology & Computing (4-5 letters)
     'CODE', 'DATA', 'BYTE', 'CHIP', 'DISK', 'FILE', 'GAME', 'HACK', 'JAVA', 'LINK',
     'MOUSE', 'PIXEL', 'ROBOT', 'SCAN', 'VIRUS', 'WIFI', 'ZOOM', 'CLOUD', 'EMAIL', 'LOGIN',
+    'SERVER', 'CLIENT', 'ROUTER', 'MODEM', 'SCREEN', 'KEYBOARD', 'CAMERA', 'SPEAKER', 'HEADPHONE', 'MONITOR',
+    'SOFTWARE', 'HARDWARE', 'BROWSER', 'SEARCH', 'DOWNLOAD', 'UPLOAD', 'STREAM', 'BUFFER', 'CACHE', 'COOKIE',
     
     // Trending News & Tech (4-5 letters)
     'CRYPTO', 'BITCOIN', 'NFT', 'WEB3', 'AI', 'META', 'VIRTUAL', 'DIGITAL', 'SMART', 'CHIP',
+    'BLOCKCHAIN', 'ETHEREUM', 'SOLANA', 'POLYGON', 'AVALANCHE', 'CARDANO', 'POLKADOT', 'COSMOS', 'NEAR', 'APTOS',
     
     // Finance & Markets (4-5 letters)
     'STOCK', 'SHARE', 'TRADE', 'PRICE', 'VALUE', 'ASSET', 'EQUITY', 'BONDS', 'FUNDS', 'CASH',
     'CREDIT', 'DEBIT', 'BUDGET', 'PROFIT', 'LOSS', 'GAIN', 'RISK', 'YIELD', 'RATE', 'FEE',
+    'INVEST', 'DIVIDEND', 'BROKER', 'MARKET', 'FOREX', 'FUTURES', 'OPTIONS', 'DERIVATIVES', 'PORTFOLIO', 'STRATEGY',
     
     // Consumer Products & Brands (4-5 letters)
     'IPHONE', 'IPAD', 'XBOX', 'SONY', 'META', 'APPLE', 'GOOGLE', 'AMAZON', 'NETFLIX', 'SPOTIFY',
     'STEAM', 'DISCORD', 'TWITTER', 'TIKTOK', 'YOUTUBE', 'REDDIT', 'SNAP', 'ZOOM', 'SKYPE', 'SLACK',
+    'TESLA', 'SAMSUNG', 'MICROSOFT', 'NINTENDO', 'PLAYSTATION', 'OCULUS', 'VALVE', 'EPIC', 'UBISOFT', 'EA',
+    'TWITCH', 'FACEBOOK', 'INSTAGRAM', 'PINTEREST', 'LINKEDIN', 'WHATSAPP', 'TELEGRAM', 'SIGNAL', 'VIBER', 'LINE',
     
     // Cartoon Characters & Shows (4-5 letters)
-    'BART', 'HOMER', 'LISA', 'MIKE', 'SUL', 'NEMO', 'DORY', 'WOODY', 'BUZZ', 'ELSA',
     'RICK', 'MORTY', 'SOUTH', 'PARK', 'FAMILY', 'GUY', 'BOB', 'ARCHER', 'PHINEAS', 'FERB',
+    'SPONGEBOB', 'SQUAREPANTS', 'PATRICK', 'SQUIDWARD', 'KRABS', 'PLANKTON', 'SANDY', 'GARY', 'LARRY', 'SPONGE',
+    'REGULAR', 'SHOW', 'GRAVITY', 'FALLS', 'DIpper', 'MABEL', 'STAN', 'FORD', 'BILL', 'CIPHER',
+    'AVATAR', 'AANG', 'KATARA', 'SOKKA', 'TOPH', 'ZUKO', 'IROH', 'AZULA', 'APPa', 'MOMO',
     
     // Anime Characters & Series (4-5 letters)
-    'NARUTO', 'LUFFY', 'GOKU', 'ASH', 'PIKA', 'ZORO', 'SANJI', 'SASU', 'SAKU', 'EREN',
-    'LEVI', 'TANJI', 'NEZU', 'DEKU', 'BAKU', 'TOKYO', 'GHOUL', 'DEATH', 'NOTE', 'LIGHT',
+    'NARUTO', 'LUFFY', 'GOKU', 'ZORO', 'SANJI', 'EREN', 'LEVI', 'TANJIRO', 'NEZUKO', 'DEKU',
+    'BAKUGO', 'TOKYO', 'GHOUL', 'DEATH', 'NOTE', 'LIGHT', 'L', 'MISA', 'RYUK', 'REM',
+    'DRAGON', 'BALL', 'VEGETA', 'PICCOLO', 'GOHAN', 'TRUNKS', 'BULMA', 'CHICHI', 'KRILIN', 'YAMCHA',
+    'ONEPIECE', 'ACE', 'SABO', 'SHANKS', 'WHITEBEARD', 'BLACKBEARD', 'BIGMOM', 'KAIDO', 'DOFLAMINGO', 'MIHAWK',
     
     // Movie Characters & Franchises (4-5 letters)
-    'LUKE', 'HAN', 'YODA', 'BOND', 'BATMAN', 'THOR', 'HULK', 'IRON', 'CAP', 'SPIDER',
+    'BATMAN', 'SUPERMAN', 'WONDER', 'WOMAN', 'SPIDERMAN', 'IRONMAN', 'CAPTAIN', 'AMERICA', 'THOR', 'HULK',
     'JEDI', 'SITH', 'MARVEL', 'DC', 'COMICS', 'AVENGERS', 'GUARDIANS', 'GALAXY', 'STORM', 'CYCLOPS',
+    'XMen', 'WOLVERINE', 'JEAN', 'GREY', 'PROFESSOR', 'XAVIER', 'MAGNETO', 'NIGHTCRAWLER', 'GAMBIT', 'ROGUE',
+    'JOKER', 'HARLEY', 'QUINN', 'BANE', 'PENGUIN', 'RIDDLER', 'CATWOMAN', 'POISON', 'IVY', 'TWO',
     
     // Web3 & Crypto (4-5 letters)
-    'ETH', 'BTC', 'COIN', 'TOKEN', 'CHAIN', 'BLOCK', 'NODE', 'MINER', 'HASH', 'MINT',
-    'BURN', 'SWAP', 'POOL', 'FARM', 'STAKE', 'YIELD', 'VAULT', 'BRIDGE', 'DEX', 'CEX',
+    'TOKEN', 'CHAIN', 'BLOCK', 'NODE', 'MINER', 'HASH', 'MINT', 'BURN', 'SWAP', 'BRIDGE',
+    'WALLET', 'ADDRESS', 'PRIVATE', 'KEY', 'PUBLIC', 'SIGNATURE', 'TRANSACTION', 'GAS', 'FEE', 'CONFIRMATION',
+    'STAKING', 'DELEGATION', 'VALIDATOR', 'CONSENSUS', 'PROOF', 'STAKE', 'WORK', 'HISTORY', 'BLOCKCHAIN', 'LEDGER',
     
     // DeFi & Finance (4-5 letters)
-    'DEFI', 'SWAP', 'POOL', 'FARM', 'STAKE', 'YIELD', 'VAULT', 'BRIDGE', 'DEX', 'CEX',
-    'LEND', 'BORROW', 'LEVERAGE', 'APY', 'TVL', 'LIQUIDITY', 'PROVIDER', 'MAKER', 'TAKER', 'FEE',
+    'LIQUIDITY', 'PROVIDER', 'MAKER', 'TAKER', 'LEND', 'BORROW', 'LEVERAGE', 'APY', 'TVL', 'SLIPPAGE',
+    'COMPOUND', 'AAVE', 'CURVE', 'BALANCER', 'SUSHI', 'UNISWAP', 'PANCAKE', 'SWAP', 'ONEINCH', 'PARASWAP',
+    'GOVERNANCE', 'PROPOSAL', 'VOTING', 'QUORUM', 'TREASURY', 'PROTOCOL', 'YIELD', 'FARMING', 'LIQUIDITY', 'POOL',
     
     // Nature & Geography (4-5 letters)
-    'NATURE', 'FOREST', 'RIVER', 'OCEAN', 'MOUNTAIN', 'VALLEY', 'DESERT', 'ISLAND', 'BEACH', 'LAKE',
-    'TREE', 'FLOWER', 'ANIMAL', 'BIRD', 'FISH', 'STAR', 'MOON', 'SUN', 'CLOUD', 'RAIN',
+    'FOREST', 'RIVER', 'OCEAN', 'MOUNTAIN', 'VALLEY', 'DESERT', 'ISLAND', 'BEACH', 'LAKE', 'STREAM',
+    'WATERFALL', 'VOLCANO', 'CAVE', 'GLACIER', 'CANYON', 'PLATEAU', 'PENINSULA', 'COAST', 'SHORE', 'HARBOR',
+    'JUNGLE', 'SAVANNA', 'TUNDRA', 'ARCTIC', 'ANTARCTIC', 'EQUATOR', 'POLAR', 'TROPICAL', 'TEMPERATE', 'CLIMATE',
     
     // Music & Entertainment (4-5 letters)
     'MUSIC', 'SONG', 'BEAT', 'RHYTHM', 'MELODY', 'TUNE', 'BAND', 'ROCK', 'JAZZ', 'POP',
     'RAP', 'HIP', 'HOP', 'DANCE', 'PARTY', 'CLUB', 'STAGE', 'MIC', 'AMP', 'GUITAR',
+    'PIANO', 'DRUM', 'BASS', 'VIOLIN', 'TRUMPET', 'SAXOPHONE', 'FLUTE', 'HARP', 'ORGAN', 'SYNTH',
+    'CONCERT', 'FESTIVAL', 'ALBUM', 'SINGLE', 'EP', 'MIXTAPE', 'PLAYLIST', 'STREAMING', 'SPOTIFY', 'APPLE',
+    
+    // Food & Cuisine (4-5 letters)
+    'PIZZA', 'BURGER', 'PASTA', 'SUSHI', 'TACO', 'BURRITO', 'RAMEN', 'CURRY', 'STEAK', 'SALAD',
+    'SOUP', 'STEW', 'CHILI', 'SANDWICH', 'WRAP', 'QUESADILLA', 'LASAGNA', 'RAVIOLI', 'SPAGHETTI', 'FETTUCCINE',
+    'CHICKEN', 'TURKEY', 'DUCK', 'LAMB', 'PORK', 'BEEF', 'SEAFOOD', 'SHRIMP', 'LOBSTER', 'CRAB',
+    
+    // Sports & Activities (4-5 letters)
+    'FOOTBALL', 'BASKETBALL', 'BASEBALL', 'SOCCER', 'TENNIS', 'VOLLEYBALL', 'HOCKEY', 'RUGBY', 'CRICKET', 'GOLF',
+    'SWIMMING', 'RUNNING', 'CYCLING', 'BOXING', 'WRESTLING', 'JUDO', 'KARATE', 'TAEKWONDO', 'FENCING', 'ARCHERY',
+    'SKIING', 'SNOWBOARD', 'SURFING', 'SKATEBOARD', 'ROCK', 'CLIMBING', 'HIKING', 'CAMPING', 'FISHING', 'HUNTING',
+    
+    // Gaming (4-5 letters)
+    'MINECRAFT', 'FORNITE', 'APEX', 'LEGENDS', 'CALL', 'DUTY', 'OVERWATCH', 'VALORANT', 'CSGO', 'DOTA',
+    'LEAGUE', 'LEGENDS', 'WORLD', 'WARCRAFT', 'STARCRAFT', 'DIABLO', 'ELDER', 'SCROLLS', 'FALLOUT', 'SKYRIM',
+    'QUEST', 'LOOT', 'BOSS', 'NPC', 'PVP', 'PVE', 'RPG', 'MMO', 'FPS', 'RTS',
   ],
   hard: [
     // Technology & Innovation (5-7 letters)
     'ALGORITHM', 'PROGRAM', 'DEVELOP', 'TECH', 'INNOVATE', 'CREATE', 'DESIGN', 'BUILD',
     'ENGINEER', 'FRAMEWORK', 'LIBRARY', 'PLATFORM', 'SYSTEM', 'NETWORK', 'SERVER', 'CLIENT',
     'DATABASE', 'STORAGE', 'MEMORY', 'PROCESSOR', 'GRAPHICS', 'SECURITY', 'ENCRYPT', 'DECODE',
+    'COMPILER', 'INTERPRETER', 'SCRIPTING', 'DEBUGGING', 'TESTING', 'DEPLOYMENT', 'DEVOPS', 'CI',
+    'CD', 'MONITORING', 'LOGGING', 'METRICS', 'ANALYTICS', 'OPTIMIZATION', 'PERFORMANCE', 'SCALABILITY',
     
     // Trending News & Current Events (5-7 letters)
-    'CRYPTO', 'BITCOIN', 'ETHEREUM', 'BLOCKCHAIN', 'METAVERSE', 'VIRTUAL', 'AUGMENT', 'DIGITAL',
-    'ARTIFICIAL', 'INTELLIGENCE', 'MACHINE', 'LEARNING', 'NEURAL', 'NETWORK', 'ALGORITHM', 'DATA',
-    'TRENDING', 'NEWS', 'EVENT', 'UPDATE', 'BREAKING', 'STORY', 'REPORT', 'MEDIA',
+    'BLOCKCHAIN', 'METAVERSE', 'VIRTUAL', 'AUGMENT', 'DIGITAL', 'ARTIFICIAL', 'INTELLIGENCE', 'MACHINE',
+    'LEARNING', 'NEURAL', 'NETWORK', 'ALGORITHM', 'DATA', 'SCIENCE', 'BIGDATA', 'CLOUD',
+    'COMPUTING', 'EDGE', 'COMPUTING', 'QUANTUM', 'COMPUTING', 'IOT', 'INTERNET', 'THINGS',
+    'AUTOMATION', 'ROBOTICS', 'DRONES', 'AUTONOMOUS', 'VEHICLES', 'ELECTRIC', 'VEHICLES', 'RENEWABLE',
     
     // Finance & Economics (5-7 letters)
     'ECONOMY', 'FINANCE', 'INVEST', 'TRADE', 'MARKET', 'STOCK', 'SHARE', 'BOND',
     'CURRENCY', 'EXCHANGE', 'FOREX', 'TRADING', 'STRATEGY', 'PORTFOLIO', 'DIVIDEND', 'BROKER',
     'CREDIT', 'MORTGAGE', 'INSURANCE', 'PENSION', 'RETIRE', 'SAVINGS', 'BUDGET', 'PROFIT',
+    'DERIVATIVES', 'FUTURES', 'OPTIONS', 'COMMODITIES', 'CRYPTOCURRENCY', 'BITCOIN', 'ETHEREUM', 'STABLECOIN',
     
     // Consumer Products & Tech Brands (5-7 letters)
     'IPHONE', 'ANDROID', 'SAMSUNG', 'MICROSOFT', 'WINDOWS', 'MACBOOK', 'AIRPODS', 'PLAYSTATION',
     'NINTENDO', 'SWITCH', 'STEAM', 'DISCORD', 'TWITTER', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE',
     'NETFLIX', 'SPOTIFY', 'AMAZON', 'GOOGLE', 'APPLE', 'META', 'REDDIT', 'LINKEDIN',
+    'TESLA', 'SPACEX', 'OPENAI', 'ANTHROPIC', 'NVIDIA', 'AMD', 'INTEL', 'QUALCOMM',
     
     // Cartoon & Animation (5-7 letters)
     'SIMPSONS', 'FUTURAMA', 'SOUTH', 'PARK', 'RICK', 'MORTY', 'ADVENTURE', 'TIME',
-    'REGULAR', 'SHOW', 'GRAVITY', 'FALLS', 'PHINEAS', 'FERB', 'SPONGEBOB', 'SQUARE',
-    'FAMILY', 'GUY', 'AMERICAN', 'DAD', 'BOB', 'BURGERS', 'ARCHER', 'BOJACK',
+    'REGULAR', 'SHOW', 'GRAVITY', 'FALLS', 'PHINEAS', 'FERB', 'SPONGEBOB', 'SQUAREPANTS',
+    'FAMILY', 'GUY', 'AMERICAN', 'DAD', 'BOB', 'BURGERS', 'ARCHER', 'BOJACK', 'HORSEMAN',
+    'AVATAR', 'LAST', 'AIRBENDER', 'LEGEND', 'KORRA', 'STEVEN', 'UNIVERSE', 'GRAVITY',
     
     // Anime & Manga (5-7 letters)
     'NARUTO', 'ONEPIECE', 'DRAGON', 'BALL', 'ATTACK', 'TITAN', 'DEMON', 'SLAYER',
     'HERO', 'ACADEMIA', 'JUJUTSU', 'KAISEN', 'TOKYO', 'GHOUL', 'DEATH', 'NOTE',
     'FULLMETAL', 'ALCHEMIST', 'COWBOY', 'BEBOP', 'NEON', 'GENESIS', 'EVANGELION', 'GHOST',
+    'SHELL', 'STAND', 'ALONE', 'COMPLEX', 'AKIRA', 'SPIRITED', 'AWAY', 'PRINCESS', 'MONONOKE',
+    'STUDIO', 'GHIBLI', 'MY', 'NEIGHBOR', 'TOTORO', 'HOWL', 'MOVING', 'CASTLE', 'CASTLE',
     
     // Movies & Franchises (5-7 letters)
     'STARWARS', 'JEDI', 'SITH', 'AVENGERS', 'MARVEL', 'UNIVERSE', 'DC', 'COMICS',
     'BATMAN', 'SUPERMAN', 'WONDER', 'WOMAN', 'SPIDERMAN', 'IRONMAN', 'CAPTAIN', 'AMERICA',
     'THOR', 'HULK', 'BLACK', 'WIDOW', 'HAWKEYE', 'VISION', 'SCARLET', 'WITCH',
+    'DOCTOR', 'STRANGE', 'ANT', 'MAN', 'WASP', 'GUARDIANS', 'GALAXY', 'STAR', 'LORD',
+    'HARRY', 'POTTER', 'LORD', 'RINGS', 'MATRIX', 'INCEPTION', 'INTERSTELLAR', 'AVATAR',
     
     // Web3 & Blockchain (5-7 letters)
-    'BLOCKCHAIN', 'CRYPTO', 'DECENTRAL', 'AUTONOMOUS', 'ORGANIZE', 'SMART', 'CONTRACT',
-    'NONFUNGIBLE', 'TOKEN', 'DIGITAL', 'ASSET', 'METAVERSE', 'VIRTUAL', 'REALITY',
+    'BLOCKCHAIN', 'DECENTRAL', 'AUTONOMOUS', 'ORGANIZE', 'SMART', 'CONTRACT', 'NONFUNGIBLE',
+    'TOKEN', 'DIGITAL', 'ASSET', 'METAVERSE', 'VIRTUAL', 'REALITY', 'AUGMENTED',
     'ETHEREUM', 'BITCOIN', 'SOLANA', 'POLYGON', 'AVALANCHE', 'CARDANO', 'POLKADOT', 'CHAINLINK',
+    'COSMOS', 'NEAR', 'APTOS', 'SUI', 'ARBITRUM', 'OPTIMISM', 'BASE', 'ZKSYNC',
+    'ROLLUP', 'L2', 'SCALING', 'SOLUTION', 'BRIDGE', 'CROSS', 'CHAIN', 'INTEROPERABILITY',
     
     // DeFi & Finance (5-7 letters)
-    'DEFI', 'DECENTRAL', 'FINANCE', 'LIQUIDITY', 'PROVIDER', 'AUTOMATE', 'MARKET', 'MAKER',
-    'COMPOUND', 'AAVE', 'YEAR', 'FINANCE', 'CURVE', 'BALANCER', 'SUSHI', 'SWAP',
+    'DECENTRAL', 'FINANCE', 'LIQUIDITY', 'PROVIDER', 'AUTOMATE', 'MARKET', 'MAKER',
+    'COMPOUND', 'AAVE', 'CURVE', 'BALANCER', 'SUSHI', 'SWAP', 'UNISWAP', 'PANCAKE',
     'LENDING', 'BORROW', 'LEVERAGE', 'YIELD', 'FARMING', 'STAKING', 'GOVERN', 'TOKEN',
+    'LIQUID', 'STAKING', 'DERIVATIVES', 'PERPETUALS', 'OPTIONS', 'FUTURES', 'SYNTHETICS', 'ASSETS',
     
     // Adventure & Exploration (5-7 letters)
     'ADVENTURE', 'EXPLORE', 'DISCOVER', 'JOURNEY', 'EXPEDITION', 'QUEST', 'MISSION',
     'VOYAGE', 'TREK', 'TRAVEL', 'WANDER', 'EXPLORE', 'DISCOVER', 'FIND', 'SEEK',
+    'EXPEDITION', 'SAFARI', 'TREKKING', 'BACKPACKING', 'MOUNTAINEERING', 'CLIMBING', 'CAVING', 'SPELUNKING',
     
     // Philosophy & Knowledge (5-7 letters)
     'PHILOSOPHY', 'KNOWLEDGE', 'WISDOM', 'UNDERSTAND', 'COMPREHEND', 'LEARN',
     'EDUCATE', 'STUDY', 'RESEARCH', 'ANALYZE', 'CRITICAL', 'THINK', 'REASON', 'LOGIC',
+    'METAPHYSICS', 'EPISTEMOLOGY', 'ETHICS', 'AESTHETICS', 'LOGIC', 'EXISTENTIALISM', 'STOICISM', 'NIHILISM',
+    
+    // Science & Nature (5-7 letters)
+    'BIOLOGY', 'CHEMISTRY', 'PHYSICS', 'ASTRONOMY', 'GEOLOGY', 'METEOROLOGY', 'OCEANOGRAPHY', 'BOTANY',
+    'ZOOLOGY', 'GENETICS', 'EVOLUTION', 'ECOSYSTEM', 'BIODIVERSITY', 'CONSERVATION', 'ENVIRONMENT', 'CLIMATE',
+    'ATOM', 'MOLECULE', 'CELL', 'ORGANISM', 'SPECIES', 'HABITAT', 'FOOD', 'CHAIN', 'PHOTOSYNTHESIS', 'RESPIRATION',
+    
+    // Space & Astronomy (5-7 letters)
+    'PLANET', 'STAR', 'GALAXY', 'NEBULA', 'BLACK', 'HOLE', 'QUASAR', 'PULSAR',
+    'COMET', 'ASTEROID', 'METEOR', 'METEORITE', 'ORBIT', 'REVOLUTION', 'ROTATION', 'AXIS',
+    'TELESCOPE', 'OBSERVATORY', 'ASTRONAUT', 'COSMONAUT', 'SPACECRAFT', 'SPACESHIP', 'ROCKET', 'SATELLITE',
+    
+    // Literature & Arts (5-7 letters)
+    'NOVEL', 'POETRY', 'DRAMA', 'FICTION', 'NONFICTION', 'BIOGRAPHY', 'AUTOBIOGRAPHY', 'ESSAY',
+    'METAPHOR', 'SIMILE', 'ALLITERATION', 'RHYME', 'RHYTHM', 'STANZA', 'VERSE', 'PROSE',
+    'PAINTING', 'SCULPTURE', 'PHOTOGRAPHY', 'ILLUSTRATION', 'DRAWING', 'SKETCH', 'PORTRAIT', 'LANDSCAPE',
   ],
   extreme: [
-    // Technology & Science (6-8 letters)
+    // Technology & Science (6-12+ letters)
     'EXTRAORDINARY', 'PHENOMENAL', 'MAGNIFICENT', 'SPECTACULAR', 'TREMENDOUS',
     'ARCHITECTURE', 'ENGINEERING', 'MATHEMATICS', 'PHYSICS', 'CHEMISTRY',
     'BIOTECHNOLOGY', 'NANOTECHNOLOGY', 'QUANTUM', 'COMPUTING', 'CRYPTOLOGY',
     'CRYPTOGRAPHY', 'CYBERSECURITY', 'NETWORKING', 'VIRTUALIZATION', 'CLOUD',
+    'MICROPROCESSOR', 'SUPERCOMPUTER', 'PARALLEL', 'COMPUTING', 'DISTRIBUTED', 'SYSTEMS',
+    'ARTIFICIAL', 'INTELLIGENCE', 'MACHINE', 'LEARNING', 'DEEP', 'LEARNING', 'NEURAL', 'NETWORKS',
+    'CONVOLUTIONAL', 'RECURRENT', 'TRANSFORMER', 'GENERATIVE', 'ADVERSARIAL', 'NETWORKS',
     
-    // Trending News & Advanced Tech (6-8 letters)
+    // Trending News & Advanced Tech (6-12+ letters)
     'CRYPTOCURRENCY', 'BLOCKCHAIN', 'TECHNOLOGY', 'DECENTRALIZED', 'AUTONOMOUS',
     'ORGANIZATION', 'SMART', 'CONTRACTS', 'NONFUNGIBLE', 'TOKENS', 'DIGITAL', 'ASSETS',
-    'METAVERSE', 'VIRTUAL', 'REALITY', 'AUGMENTED', 'REALITY', 'ARTIFICIAL', 'INTELLIGENCE',
-    'MACHINE', 'LEARNING', 'DEEP', 'LEARNING', 'NEURAL', 'NETWORKS', 'ALGORITHMS', 'DATA',
+    'METAVERSE', 'VIRTUAL', 'REALITY', 'AUGMENTED', 'REALITY', 'MIXED', 'REALITY',
+    'EXTENDED', 'REALITY', 'IMMERSIVE', 'TECHNOLOGY', 'HAPTIC', 'FEEDBACK', 'MOTION', 'TRACKING',
+    'INTERNET', 'THINGS', 'EDGE', 'COMPUTING', 'FOG', 'COMPUTING', 'EDGE', 'AI',
     
-    // Finance & Economics Advanced (6-8 letters)
+    // Finance & Economics Advanced (6-12+ letters)
     'ECONOMICS', 'FINANCIAL', 'INSTRUMENTS', 'DERIVATIVES', 'FUTURES', 'OPTIONS', 'COMMODITIES',
     'CURRENCY', 'EXCHANGE', 'FOREX', 'TRADING', 'INVESTMENT', 'STRATEGY', 'DIVERSIFICATION',
     'VOLATILITY', 'LIQUIDITY', 'MARKET', 'CAPITALIZATION', 'VALUATION', 'ANALYSIS',
     'QUANTITATIVE', 'ANALYSIS', 'RISK', 'MANAGEMENT', 'PORTFOLIO', 'THEORY', 'EFFICIENT',
+    'MARKET', 'HYPOTHESIS', 'BLACK', 'SCHOLES', 'MODEL', 'MONTE', 'CARLO', 'SIMULATION',
+    'ALGORITHMIC', 'TRADING', 'HIGH', 'FREQUENCY', 'TRADING', 'ARBITRAGE', 'STRATEGIES',
     
-    // Consumer Products & Advanced Tech (6-8 letters)
-    'PLAYSTATION', 'XBOX', 'NINTENDO', 'SWITCH', 'STEAM', 'EPIC', 'GAMES', 'STORE',
-    'APPLE', 'GOOGLE', 'MICROSOFT', 'AMAZON', 'META', 'NETFLIX', 'SPOTIFY', 'DISCORD',
-    'TWITTER', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'REDDIT', 'LINKEDIN', 'SNAPCHAT', 'PINTEREST',
+    // Consumer Products & Advanced Tech (6-12+ letters)
     'TECHNOLOGY', 'INNOVATION', 'DIGITAL', 'TRANSFORMATION', 'CONSUMER', 'ELECTRONICS',
+    'SMARTPHONE', 'TABLET', 'LAPTOP', 'DESKTOP', 'WORKSTATION', 'SERVER', 'DATACENTER',
+    'CLOUD', 'COMPUTING', 'INFRASTRUCTURE', 'SOFTWARE', 'SERVICE', 'PLATFORM', 'ECOSYSTEM',
+    'INTERNET', 'BROWSER', 'SEARCH', 'ENGINE', 'SOCIAL', 'MEDIA', 'STREAMING', 'PLATFORM',
     
-    // Advanced Cartoon & Animation (6-8 letters)
-    'SIMPSONS', 'FUTURAMA', 'SOUTH', 'PARK', 'RICK', 'MORTY', 'ADVENTURE', 'TIME',
-    'REGULAR', 'SHOW', 'GRAVITY', 'FALLS', 'PHINEAS', 'FERB', 'SPONGEBOB', 'SQUAREPANTS',
-    'FAMILY', 'GUY', 'AMERICAN', 'DAD', 'BOB', 'BURGERS', 'ARCHER', 'BOJACK', 'HORSEMAN',
+    // Advanced Cartoon & Animation (6-12+ letters)
     'ANIMATION', 'STUDIO', 'PIXAR', 'DISNEY', 'DREAMWORKS', 'ILLUMINATION', 'ENTERTAINMENT',
+    'COMPUTER', 'ANIMATION', 'TRADITIONAL', 'ANIMATION', 'STOP', 'MOTION', 'CLAYMATION',
+    'STORYBOARDING', 'CHARACTER', 'DESIGN', 'ENVIRONMENT', 'DESIGN', 'RIGGING', 'ANIMATION',
+    'RENDERING', 'COMPOSITING', 'VISUAL', 'EFFECTS', 'POST', 'PRODUCTION', 'EDITING',
     
-    // Advanced Anime & Manga (6-8 letters)
-    'NARUTO', 'ONEPIECE', 'DRAGON', 'BALL', 'ATTACK', 'TITAN', 'DEMON', 'SLAYER',
-    'HERO', 'ACADEMIA', 'JUJUTSU', 'KAISEN', 'TOKYO', 'GHOUL', 'DEATH', 'NOTE',
-    'FULLMETAL', 'ALCHEMIST', 'COWBOY', 'BEBOP', 'NEON', 'GENESIS', 'EVANGELION', 'GHOST',
-    'SHELL', 'STAND', 'ALONE', 'COMPLEX', 'AKIRA', 'SPIRITED', 'AWAY', 'PRINCESS', 'MONONOKE',
-    'ANIME', 'MANGA', 'JAPANESE', 'ANIMATION', 'STUDIO', 'GHIBLI', 'TOEI', 'ANIMATION',
+    // Advanced Anime & Manga (6-12+ letters)
+    'JAPANESE', 'ANIMATION', 'STUDIO', 'GHIBLI', 'TOEI', 'ANIMATION', 'PRODUCTION', 'IG',
+    'BONES', 'MADHOUSE', 'UFO', 'TABLE', 'WIT', 'STUDIO', 'MAPPA', 'STUDIO', 'TRIGGER',
+    'SHONEN', 'SHOJO', 'SEINEN', 'JOSEI', 'GENRE', 'CATEGORIES', 'MANGA', 'ANIME',
+    'ORIGINAL', 'ANIMATION', 'VIDEO', 'ANIME', 'ORIGINAL', 'NET', 'ANIMATION',
     
-    // Advanced Movies & Franchises (6-8 letters)
-    'STARWARS', 'JEDI', 'SITH', 'AVENGERS', 'MARVEL', 'UNIVERSE', 'DC', 'COMICS',
-    'BATMAN', 'SUPERMAN', 'WONDER', 'WOMAN', 'SPIDERMAN', 'IRONMAN', 'CAPTAIN', 'AMERICA',
-    'THOR', 'HULK', 'BLACK', 'WIDOW', 'HAWKEYE', 'VISION', 'SCARLET', 'WITCH', 'DOCTOR',
-    'STRANGE', 'GUARDIANS', 'GALAXY', 'XMEN', 'WOLVERINE', 'STORM', 'CYCLOPS', 'JEAN', 'GREY',
+    // Advanced Movies & Franchises (6-12+ letters)
     'CINEMATIC', 'UNIVERSE', 'SUPERHERO', 'FRANCHISE', 'ENTERTAINMENT', 'INDUSTRY',
+    'SCREENWRITING', 'DIRECTING', 'CINEMATOGRAPHY', 'FILM', 'EDITING', 'SOUND', 'DESIGN',
+    'SPECIAL', 'EFFECTS', 'VISUAL', 'EFFECTS', 'MOTION', 'CAPTURE', 'GREEN', 'SCREEN',
+    'POST', 'PRODUCTION', 'PRE', 'PRODUCTION', 'PRODUCTION', 'DESIGN', 'COSTUME', 'DESIGN',
     
-    // Advanced Web3 & Blockchain (6-8 letters)
-    'BLOCKCHAIN', 'CRYPTOCURRENCY', 'DECENTRALIZED', 'AUTONOMOUS', 'ORGANIZATION', 'SMART',
-    'CONTRACTS', 'NONFUNGIBLE', 'TOKENS', 'DIGITAL', 'ASSETS', 'METAVERSE', 'VIRTUAL',
-    'REALITY', 'AUGMENTED', 'REALITY', 'ARTIFICIAL', 'INTELLIGENCE', 'MACHINE', 'LEARNING',
-    'ETHEREUM', 'BITCOIN', 'SOLANA', 'POLYGON', 'AVALANCHE', 'CARDANO', 'POLKADOT', 'CHAINLINK',
+    // Advanced Web3 & Blockchain (6-12+ letters)
+    'DECENTRALIZED', 'APPLICATIONS', 'DAPPS', 'WEBTHREE', 'DECENTRALIZED', 'WEB',
+    'CONSENSUS', 'MECHANISM', 'PROOF', 'STAKE', 'PROOF', 'WORK', 'PROOF', 'HISTORY',
+    'LAYER', 'TWO', 'SCALING', 'SOLUTIONS', 'ROLLUPS', 'SIDECHAINS', 'STATE', 'CHANNELS',
+    'ZERO', 'KNOWLEDGE', 'PROOFS', 'ZK', 'ROLLUPS', 'OPTIMISTIC', 'ROLLUPS', 'VALIDIUM',
+    'CROSS', 'CHAIN', 'BRIDGES', 'ATOMIC', 'SWAPS', 'LIQUIDITY', 'BRIDGES', 'WORMHOLE',
     
-    // Advanced DeFi & Finance (6-8 letters)
-    'DEFI', 'DECENTRALIZED', 'FINANCE', 'LIQUIDITY', 'PROVIDER', 'AUTOMATED', 'MARKET', 'MAKER',
-    'COMPOUND', 'AAVE', 'YEAR', 'FINANCE', 'CURVE', 'BALANCER', 'SUSHI', 'SWAP',
-    'LENDING', 'BORROWING', 'LEVERAGE', 'YIELD', 'FARMING', 'STAKING', 'GOVERNANCE', 'TOKEN',
-    'DECENTRALIZED', 'EXCHANGE', 'AUTOMATED', 'MARKET', 'MAKER', 'LIQUIDITY', 'POOL',
+    // Advanced DeFi & Finance (6-12+ letters)
+    'DECENTRALIZED', 'FINANCE', 'OPEN', 'FINANCE', 'PERMISSIONLESS', 'FINANCE',
+    'LIQUIDITY', 'PROTOCOLS', 'AUTOMATED', 'MARKET', 'MAKERS', 'YIELD', 'AGGREGATORS',
+    'DERIVATIVE', 'PROTOCOLS', 'PERPETUAL', 'SWAPS', 'OPTIONS', 'PROTOCOLS', 'SYNTHETICS',
+    'GOVERNANCE', 'TOKENS', 'VOTING', 'MECHANISMS', 'TREASURY', 'MANAGEMENT', 'PROPOSAL', 'SYSTEMS',
+    'LIQUID', 'STAKING', 'DERIVATIVES', 'RESTAKING', 'VALIDATOR', 'ECONOMICS', 'SLASHING', 'MECHANISMS',
+    
+    // Science & Mathematics (6-12+ letters)
+    'ASTROPHYSICS', 'COSMOLOGY', 'QUANTUM', 'MECHANICS', 'RELATIVITY', 'THEORY',
+    'PARTICLE', 'PHYSICS', 'STRING', 'THEORY', 'DARK', 'MATTER', 'DARK', 'ENERGY',
+    'EVOLUTIONARY', 'BIOLOGY', 'GENETICS', 'MOLECULAR', 'BIOLOGY', 'CELL', 'BIOLOGY',
+    'ORGANIC', 'CHEMISTRY', 'INORGANIC', 'CHEMISTRY', 'PHYSICAL', 'CHEMISTRY', 'ANALYTICAL', 'CHEMISTRY',
+    'CALCULUS', 'ALGEBRA', 'GEOMETRY', 'TOPOLOGY', 'STATISTICS', 'PROBABILITY', 'THEORY',
+    
+    // Philosophy & Humanities (6-12+ letters)
+    'METAPHYSICS', 'EPISTEMOLOGY', 'ONTOLOGY', 'PHENOMENOLOGY', 'EXISTENTIALISM',
+    'STOICISM', 'UTILITARIANISM', 'DEONTOLOGY', 'VIRTUE', 'ETHICS', 'AESTHETICS',
+    'LOGIC', 'PHILOSOPHY', 'LANGUAGE', 'MIND', 'PHILOSOPHY', 'RELIGION', 'PHILOSOPHY',
+    'POLITICAL', 'PHILOSOPHY', 'SOCIAL', 'PHILOSOPHY', 'ENVIRONMENTAL', 'PHILOSOPHY',
+    
+    // Space & Astronomy (6-12+ letters)
+    'EXOPLANETS', 'ASTEROIDS', 'COMETS', 'METEOROIDS', 'METEORITES', 'NEBULAE',
+    'SUPERNOVA', 'NEUTRON', 'STARS', 'WHITE', 'DWARFS', 'RED', 'GIANTS', 'BLUE', 'GIANTS',
+    'SPACE', 'EXPLORATION', 'MARS', 'MISSION', 'MOON', 'LANDING', 'INTERNATIONAL', 'SPACE', 'STATION',
+    'JAMES', 'WEBB', 'SPACE', 'TELESCOPE', 'HUBBLE', 'SPACE', 'TELESCOPE', 'SPITZER', 'SPACE', 'TELESCOPE',
   ],
 } as const;
 
