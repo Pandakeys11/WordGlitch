@@ -57,7 +57,7 @@ export function getAllProfiles(): ProfileMetadata[] {
   return stored.profiles.sort((a, b) => b.lastPlayed - a.lastPlayed);
 }
 
-export function createProfile(name: string): string {
+export function createProfile(name: string, walletAddress?: string): string {
   const trimmedName = name.trim();
   if (!trimmedName) {
     throw new Error('Profile name cannot be empty');
@@ -70,6 +70,16 @@ export function createProfile(name: string): string {
     throw new Error('A profile with this name already exists');
   }
 
+  // If wallet address provided, check if it's already linked to another profile
+  if (walletAddress) {
+    const existingProfile = profiles.profiles.find(
+      p => p.walletAddress?.toLowerCase() === walletAddress.toLowerCase()
+    );
+    if (existingProfile) {
+      throw new Error(`This wallet is already linked to profile "${existingProfile.name}"`);
+    }
+  }
+
   const profileId = `profile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const now = Date.now();
 
@@ -78,6 +88,7 @@ export function createProfile(name: string): string {
     name: trimmedName,
     createdAt: now,
     lastPlayed: now,
+    walletAddress: walletAddress, // Link wallet if provided
   };
 
   profiles.profiles.push(newProfile);
@@ -166,6 +177,20 @@ export function getProfileByWalletAddress(walletAddress: string): ProfileMetadat
   return profiles.profiles.find(
     p => p.walletAddress?.toLowerCase() === walletAddress.toLowerCase()
   ) || null;
+}
+
+/**
+ * Auto-login to profile by wallet address
+ * If a profile exists for this wallet, switch to it
+ * Returns true if profile was found and switched, false otherwise
+ */
+export function autoLoginByWallet(walletAddress: string): boolean {
+  const profile = getProfileByWalletAddress(walletAddress);
+  if (profile) {
+    switchProfile(profile.id);
+    return true;
+  }
+  return false;
 }
 
 export function updateProfileName(profileId: string, newName: string): void {

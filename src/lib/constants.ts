@@ -2,26 +2,44 @@ export const APP_VERSION = '1.0.0';
 
 /**
  * Mandatory Palette Requirements for Boss Levels
- * Boss levels occur every 10 levels and require hard difficulty palettes
- * Boss levels: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, etc.
+ * Average difficulty levels: 5, 10, 15, 20, 25
+ * Hard difficulty levels: 35, 45, 55, 65, 75, 85, 95, 105, etc. (every 10 after 35)
  */
-export const MANDATORY_AVERAGE_LEVELS: readonly number[] = []; // No longer used - all boss levels are hard
+export const MANDATORY_AVERAGE_LEVELS: readonly number[] = [5, 10, 15, 20, 25];
 
 /**
- * Check if a level is a boss level (every 10 levels)
+ * Check if a level is an average difficulty boss level
+ */
+export function isAverageBossLevel(level: number): boolean {
+  return MANDATORY_AVERAGE_LEVELS.includes(level);
+}
+
+/**
+ * Check if a level is a hard difficulty boss level
+ * Hard levels: 35, 45, 55, 65, 75, 85, 95, 105, etc. (every 10 after 35)
+ */
+export function isHardBossLevel(level: number): boolean {
+  return level >= 35 && level % 10 === 5;
+}
+
+/**
+ * Check if a level is a boss level (average or hard)
  */
 export function isBossLevel(level: number): boolean {
-  return level % 10 === 0 && level >= 10;
+  return isAverageBossLevel(level) || isHardBossLevel(level);
 }
 
 /**
  * Get mandatory palette difficulty for a level
- * Returns 'hard' for boss levels (every 10 levels: 10, 20, 30, 40, etc.)
+ * Returns 'average' for levels 5, 10, 15, 20, 25
+ * Returns 'hard' for levels 35, 45, 55, 65, 75, 85, 95, 105, etc.
  * Returns null if no mandatory requirement
  */
 export function getMandatoryPaletteDifficulty(level: number): 'average' | 'hard' | null {
-  // Boss levels occur every 10 levels and require hard palette
-  if (isBossLevel(level)) {
+  if (isAverageBossLevel(level)) {
+    return 'average';
+  }
+  if (isHardBossLevel(level)) {
     return 'hard';
   }
   
@@ -36,14 +54,22 @@ export function hasMandatoryPalette(level: number): boolean {
 }
 
 /**
- * Get all hard boss levels (every 10 levels starting from level 10)
+ * Get all average difficulty boss levels
+ * Useful for display purposes
+ */
+export function getAverageBossLevels(upToLevel: number = 100): number[] {
+  return MANDATORY_AVERAGE_LEVELS.filter(level => level <= upToLevel);
+}
+
+/**
+ * Get all hard boss levels (35, 45, 55, 65, 75, 85, 95, 105, etc.)
  * Useful for display purposes
  */
 export function getHardBossLevels(upToLevel: number = 100): number[] {
   const hardLevels: number[] = [];
   
-  // Boss levels occur every 10 levels starting from level 10
-  for (let level = 10; level <= upToLevel; level += 10) {
+  // Hard levels: 35, 45, 55, 65, 75, 85, 95, 105, etc. (every 10 after 35)
+  for (let level = 35; level <= upToLevel; level += 10) {
     hardLevels.push(level);
   }
   
@@ -217,6 +243,54 @@ export const WORD_LISTS = {
     // Gaming (3-4 letters)
     'PLAY', 'GAME', 'WIN', 'LOSE', 'LEVEL', 'XP', 'HP', 'MP', 'BOSS', 'NPC',
     'QUEST', 'LOOT', 'DROP', 'RARE', 'EPIC', 'LEGEND', 'RANK', 'TIER', 'CLASS', 'SKILL',
+    
+    // ===== COMEDIC & FUN WORDS =====
+    // Funny Sounds & Expressions (3-4 letters)
+    'BONK', 'BOOP', 'YEET', 'YOINK', 'PLOP', 'SPLAT', 'SPLOSH', 'KABOOM', 'ZOOP', 'ZOOM',
+    'HONK', 'BEEP', 'BLIP', 'BLOP', 'BOING', 'BUZZ', 'FIZZ', 'FUZZ', 'WHOMP', 'WHOP',
+    'OOF', 'UGH', 'MEH', 'NAH', 'YEP', 'YUP', 'NOPE', 'BRUH', 'DANG', 'DARN',
+    'HAHA', 'LMAO', 'ROFL', 'LOL', 'HEHE', 'HIHI', 'TEHE', 'SNORT', 'GIGGLE', 'SNICKER',
+    
+    // Internet Slang & Memes (3-4 letters)
+    'MEME', 'VIBE', 'MOOD', 'SLAY', 'FLEX', 'DRIP', 'FIRE', 'LIT', 'GOAT', 'BASED',
+    'SUS', 'SIMP', 'STAN', 'FAM', 'BRO', 'SIS', 'DUDE', 'MATE', 'BESTIE', 'SQUAD',
+    'WOKE', 'SALTY', 'SHOOK', 'DEAD', 'DONE', 'VIBE', 'CHILL', 'HYPE', 'RATIO', 'COPE',
+    
+    // Silly Animals (3-4 letters)
+    'DERP', 'DOGE', 'SNEK', 'BIRB', 'PUPPER', 'DOGGO', 'CATTO', 'FLOOF', 'CHONK', 'SMOL',
+    'THICC', 'BLEP', 'MLEM', 'BORK', 'WOOF', 'MEOW', 'MOO', 'OINK', 'QUACK', 'NEIGH',
+    
+    // Onomatopoeia (3-4 letters)
+    'BANG', 'CRASH', 'BOOM', 'POW', 'ZAP', 'WHAM', 'THUD', 'CLUNK', 'CLANG', 'DING',
+    'PING', 'PONG', 'ZING', 'SWISH', 'SWOOSH', 'WHOOSH', 'SPLASH', 'SPLOOSH', 'SQUISH', 'SQUASH',
+    
+    // Random Fun (3-4 letters)
+    'BLOB', 'GLOP', 'GOOP', 'SLIME', 'GUNK', 'FUNK', 'JUNK', 'PUNK', 'SPUNK', 'CHUNK',
+    'WACKY', 'ZANY', 'KOOKY', 'GOOFY', 'NUTTY', 'SILLY', 'CRAZY', 'WILD', 'ODD', 'WEIRD',
+    
+    // Food Slang (3-4 letters)
+    'NOMS', 'YUM', 'YUMMY', 'TASTY', 'SNACK', 'MUNCH', 'CRUNCH', 'SLURP', 'GULP', 'CHOMP',
+    'FEAST', 'GRUB', 'CHOW', 'EATS', 'BITES', 'NIBBLE', 'GOBBLE', 'SWIG', 'CHUG', 'GUZZLE',
+    
+    // Action Words (3-4 letters)
+    'BASH', 'SMASH', 'SLASH', 'DASH', 'FLASH', 'CLASH', 'CRASH', 'TRASH', 'BLAST', 'BURST',
+    'STOMP', 'CHOMP', 'ROMP', 'TROMP', 'CLOMP', 'THUMP', 'BUMP', 'LUMP', 'DUMP', 'PUMP',
+    
+    // Hidden Gems - Horror (3-4 letters)
+    'DOOM', 'GLOOM', 'DREAD', 'FEAR', 'EERIE', 'CREEP', 'SPOOK', 'GHOST', 'HAUNT', 'SKULL',
+    'BONE', 'FANG', 'CLAW', 'GORE', 'GRIM', 'DARK', 'NIGHT', 'SHADE', 'SHADOW', 'CURSE',
+    
+    // Hidden Gems - Fantasy (3-4 letters)
+    'ORC', 'ELF', 'DWARF', 'GNOME', 'FAIRY', 'PIXIE', 'TROLL', 'OGRE', 'GOBLIN', 'SPRITE',
+    'MAGE', 'SAGE', 'BARD', 'RUNE', 'SPELL', 'WAND', 'STAFF', 'SWORD', 'SHIELD', 'HELM',
+    
+    // Hidden Gems - Sci-Fi (3-4 letters)
+    'WARP', 'BEAM', 'LASER', 'PHASER', 'ALIEN', 'UFO', 'VOID', 'COSMOS', 'FLUX', 'NEXUS',
+    'MECH', 'DROID', 'BOT', 'CYBER', 'NANO', 'PLASMA', 'ION', 'PROBE', 'ORBIT', 'NOVA',
+    
+    // Retro Gaming (3-4 letters)
+    'PONG', 'PAC', 'ATARI', 'SEGA', 'SONIC', 'MARIO', 'ZELDA', 'KONG', 'TETRIS', 'FROGGER',
+    'GALAGA', 'PACMAN', 'TOAD', 'YOSHI', 'WARIO', 'LUIGI', 'KIRBY', 'LINK', 'SAMUS', 'PEACH',
   ],
   medium: [
     // Technology & Computing (4-5 letters)
@@ -293,6 +367,63 @@ export const WORD_LISTS = {
     'MINECRAFT', 'FORNITE', 'APEX', 'LEGENDS', 'CALL', 'DUTY', 'OVERWATCH', 'VALORANT', 'CSGO', 'DOTA',
     'LEAGUE', 'LEGENDS', 'WORLD', 'WARCRAFT', 'STARCRAFT', 'DIABLO', 'ELDER', 'SCROLLS', 'FALLOUT', 'SKYRIM',
     'QUEST', 'LOOT', 'BOSS', 'NPC', 'PVP', 'PVE', 'RPG', 'MMO', 'FPS', 'RTS',
+    
+    // ===== COMEDIC & FUN WORDS =====
+    // Internet Culture & Memes (4-6 letters)
+    'POGGERS', 'KEKW', 'COPIUM', 'HOPIUM', 'SIGMA', 'ALPHA', 'OMEGA', 'CHAD', 'GIGACHAD', 'WOJAK',
+    'PEPE', 'KAREN', 'BOOMER', 'ZOOMER', 'DOOMER', 'COOMER', 'BLOOMER', 'GLOOMER', 'SOONER', 'LOOMER',
+    'STONKS', 'HODL', 'WAGMI', 'NGMI', 'FOMO', 'FUDO', 'YOLO', 'SWAG', 'DRIP', 'SAUCE',
+    'BUSSIN', 'BANGER', 'SLAPS', 'HITS', 'VIBES', 'ENERGY', 'AURA', 'RIZZ', 'SKIBI', 'GYATT',
+    
+    // Funny Expressions (4-6 letters)
+    'YIKES', 'SHEESH', 'WELP', 'OOPSIE', 'WHOOPSIE', 'YOINKS', 'ZOINKS', 'JINKIES', 'CRIKEY', 'BLIMEY',
+    'GOLLY', 'GOSH', 'DAGNAB', 'DOGGONE', 'DADGUM', 'FIDDLESTICKS', 'TARNATION', 'DINGDANG', 'FLIPPING', 'FRIGGING',
+    'BONKERS', 'BANANAS', 'CUCKOO', 'LOOPY', 'NUTSO', 'BATTY', 'DAFFY', 'SCREWY', 'WACKO', 'LOCO',
+    
+    // Silly Actions (4-6 letters)
+    'WADDLE', 'WOBBLE', 'WIGGLE', 'JIGGLE', 'GIGGLE', 'SNUGGLE', 'CUDDLE', 'TICKLE', 'PICKLE', 'FICKLE',
+    'FLAIL', 'FLOP', 'FLOUNDER', 'FUMBLE', 'BUMBLE', 'TUMBLE', 'STUMBLE', 'RUMBLE', 'GRUMBLE', 'MUMBLE',
+    'BOOGIE', 'SHIMMY', 'SHUFFLE', 'SKIBIDI', 'DANCY', 'PRANCY', 'BOUNCY', 'JUMPY', 'PEPPY', 'ZIPPY',
+    
+    // Goofy Noises (4-6 letters)
+    'SPLORK', 'BLURP', 'GLURP', 'SLURP', 'BURP', 'GURGLE', 'GARGLE', 'JINGLE', 'MINGLE', 'TINGLE',
+    'KABAM', 'WHAMMO', 'BAMMO', 'KAPOW', 'KAZAM', 'SHAZAM', 'ALAKAZAM', 'PRESTO', 'VOILA', 'TADA',
+    'WAHOO', 'WOOHOO', 'YAHOO', 'YEEHAW', 'BOOYAH', 'HOORAH', 'HURRAH', 'HOORAY', 'YIPPEE', 'WHEEEE',
+    
+    // Insult Comedy (4-6 letters)
+    'DOOFUS', 'GOOFBALL', 'DINGUS', 'DWEEB', 'NERD', 'GEEK', 'DORK', 'GOOBER', 'NUMPTY', 'NITWIT',
+    'DIMWIT', 'HALFWIT', 'TWIT', 'NINNY', 'NINCOMPOOP', 'KNUCKLEHEAD', 'BONEHEAD', 'BIRDBRAIN', 'LAMEBRAIN', 'PEANUT',
+    'TURKEY', 'MUPPET', 'CLOWN', 'JOKER', 'BUFFOON', 'BABOON', 'GOON', 'LOON', 'MAROON', 'TYCOON',
+    
+    // Food Comedy (4-6 letters)
+    'NUGGET', 'CHICKEN', 'TENDIES', 'NUGGIES', 'CHIMKEN', 'BORGER', 'HAMBERDER', 'HOTDOG', 'CORNDOG', 'WEINER',
+    'PICKLE', 'BANANA', 'POTATO', 'TOMATO', 'AVOCADO', 'BROCCOLI', 'CABBAGE', 'LETTUCE', 'CARROT', 'RADISH',
+    'BURRITO', 'TAQUITO', 'NACHO', 'CHEETO', 'DORITO', 'FRITO', 'TORTILLA', 'ENCHILADA', 'EMPANADA', 'TAMALE',
+    
+    // Hidden Horror (4-6 letters)
+    'CURSED', 'HEXED', 'JINXED', 'VEXED', 'WICKED', 'SINISTER', 'MALICE', 'MENACE', 'TERROR', 'HORROR',
+    'FIEND', 'DEMON', 'DEVIL', 'SATAN', 'LUCIFER', 'BEELZ', 'HADES', 'REAPER', 'WRAITH', 'SPECTER',
+    'ZOMBIE', 'GHOUL', 'VAMPIRE', 'WEREWOLF', 'MONSTER', 'BEAST', 'CREATURE', 'MUTANT', 'UNDEAD', 'UNHOLY',
+    
+    // Hidden Fantasy (4-6 letters)
+    'WIZARD', 'SORCERER', 'WARLOCK', 'WITCH', 'MANCER', 'DRUID', 'SHAMAN', 'CLERIC', 'PALADIN', 'RANGER',
+    'KNIGHT', 'WARRIOR', 'BERSERKER', 'BARBARIAN', 'GLADIATOR', 'SAMURAI', 'NINJA', 'ASSASSIN', 'ROGUE', 'THIEF',
+    'DRAGON', 'PHOENIX', 'GRIFFIN', 'UNICORN', 'PEGASUS', 'CERBERUS', 'HYDRA', 'CHIMERA', 'KRAKEN', 'LEVIATHAN',
+    
+    // Hidden Sci-Fi (4-6 letters)
+    'ANDROID', 'CYBORG', 'SYNTH', 'REPLICANT', 'CLONE', 'MUTANT', 'HYBRID', 'GENOME', 'MATRIX', 'NEXUS',
+    'QUANTUM', 'PHOTON', 'PROTON', 'NEUTRON', 'ELECTRON', 'QUARK', 'GLUON', 'BOSON', 'HIGGS', 'TACHYON',
+    'STARSHIP', 'CRUISER', 'FRIGATE', 'DESTROYER', 'CARRIER', 'DREADNOUGHT', 'MOTHERSHIP', 'STATION', 'OUTPOST', 'COLONY',
+    
+    // Classic Video Games (4-6 letters)
+    'BOWSER', 'GANON', 'RIDLEY', 'MEWTWO', 'CHARIZARD', 'PIKACHU', 'EEVEE', 'JIGGLYPUFF', 'SNORLAX', 'GENGAR',
+    'RATCHET', 'CLANK', 'CRASH', 'SPYRO', 'BANDICOOT', 'RAYMAN', 'MEGAMAN', 'BOMBERMAN', 'EARTHWORM', 'JIM',
+    'SCORPION', 'SUBZERO', 'RAIDEN', 'KITANA', 'SONYA', 'JOHNNY', 'CAGE', 'SHANG', 'TSUNG', 'KANO',
+    
+    // Twitch/Streaming (4-6 letters)
+    'POGCHAMP', 'KAPPA', 'OMEGALUL', 'MONKAS', 'PEPEGA', 'WIDEPEEPO', 'SADGE', 'MADGE', 'GLADGE', 'BEDGE',
+    'STREAM', 'CHAT', 'EMOTE', 'DONATE', 'SUBSCRIBE', 'FOLLOW', 'LURK', 'LURKER', 'VIEWER', 'CONTENT',
+    'CRINGE', 'BASED', 'TOXIC', 'WHOLESOME', 'BLESSED', 'CURSED', 'BLURSED', 'SCUFFED', 'SCUFF', 'BOTCHED',
   ],
   hard: [
     // Technology & Innovation (5-7 letters)
@@ -377,6 +508,66 @@ export const WORD_LISTS = {
     'NOVEL', 'POETRY', 'DRAMA', 'FICTION', 'NONFICTION', 'BIOGRAPHY', 'AUTOBIOGRAPHY', 'ESSAY',
     'METAPHOR', 'SIMILE', 'ALLITERATION', 'RHYME', 'RHYTHM', 'STANZA', 'VERSE', 'PROSE',
     'PAINTING', 'SCULPTURE', 'PHOTOGRAPHY', 'ILLUSTRATION', 'DRAWING', 'SKETCH', 'PORTRAIT', 'LANDSCAPE',
+    
+    // ===== COMEDIC & FUN WORDS =====
+    // Internet Culture Advanced (6-8 letters)
+    'DOOMSCROLL', 'MAINCHAR', 'SIDEQUEST', 'LEVELUP', 'SPEEDRUN', 'SOFTLOCK', 'HARDLOCK', 'GLITCHED',
+    'NERFED', 'BUFFED', 'PATCHED', 'HOTFIX', 'ROLLBACK', 'RESPAWN', 'RAGEQUIT', 'NOLIFING',
+    'TRYHARD', 'SWEATY', 'GRINDING', 'FARMING', 'BOTTING', 'SMURFING', 'BOOSTED', 'CARRIED',
+    'SANDBAGGING', 'GATEKEEPING', 'GASLIGHTING', 'MANSPLAINING', 'SEALIONING', 'DOXXING', 'SWATTING', 'BRIGADING',
+    
+    // Absurd Comedy Words (6-8 letters)
+    'SKEDADDLE', 'BAMBOOZLE', 'FLABBERGAST', 'GOBSMACKED', 'DISCOMBOBULATE', 'CATTYWAMPUS', 'LOLLYGAG', 'BUMFUZZLE',
+    'HULLABALOO', 'KERFUFFLE', 'BROUHAHA', 'SHENANIGANS', 'TOMFOOLERY', 'SKULLDUGGERY', 'MALARKEY', 'HOGWASH',
+    'POPPYCOCK', 'BALDERDASH', 'CODSWALLOP', 'FLIMFLAM', 'MUMBO', 'JUMBO', 'HOCUS', 'POCUS',
+    'JIBBERJABBER', 'WHIPPERSNAPPER', 'RAPSCALLION', 'SCALLIWAG', 'RIFFRAFF', 'RABBLEROUSER', 'CURMUDGEON', 'CODGER',
+    
+    // Goofy Actions Advanced (6-8 letters)
+    'GALLIVANT', 'TRAIPSE', 'MEANDER', 'MOSEY', 'SAUNTER', 'SWAGGER', 'STRUT', 'PRANCE',
+    'CAPER', 'FROLIC', 'GAMBOL', 'CAVORT', 'ROLLICK', 'ROMP', 'SKYLARK', 'HORSEPLAY',
+    'ROUGHHOUSE', 'MONKEYSHINE', 'SHENANIGAN', 'HIJINK', 'ANTIC', 'ESCAPADE', 'CAPER', 'LARK',
+    'BAMBOOZLER', 'HORNSWOGGLE', 'SWINDLE', 'HOODWINK', 'DUPE', 'GULL', 'BILK', 'FLEECE',
+    
+    // Ridiculous Insults (6-8 letters)
+    'BLOCKHEAD', 'NINCOMPOOP', 'LUNKHEAD', 'THICKHEAD', 'FATHEAD', 'PINHEAD', 'MEATHEAD', 'BONEHEAD',
+    'FEATHERBRAIN', 'RATTLEBRAIN', 'SCATTERBRAIN', 'HAREBRAIN', 'PEANUTBRAIN', 'SMOOTHBRAIN', 'SMOLBRAIN', 'BIGBRAIN',
+    'IMBECILE', 'SIMPLETON', 'IGNORAMUS', 'DUNCE', 'DOLT', 'CLOD', 'OAF', 'YOKEL',
+    'BUMPKIN', 'RUBE', 'HICK', 'HILLBILLY', 'BUMPKIN', 'PEASANT', 'PLEB', 'NORMIE',
+    
+    // Hidden Horror Advanced (6-8 letters)
+    'NIGHTMARE', 'BLOODCURDLING', 'TERRIFYING', 'HORRIFYING', 'PETRIFYING', 'MORTIFYING', 'GRUESOME', 'MACABRE',
+    'ELDRITCH', 'LOVECRAFT', 'CTHULHU', 'NECRONOMICON', 'SHOGGOTH', 'NYARLATHOTEP', 'DAGON', 'AZATHOTH',
+    'POLTERGEIST', 'BANSHEE', 'REVENANT', 'LICH', 'NOSFERATU', 'DRACULA', 'FRANKENSTEIN', 'WOLFMAN',
+    'CRYPTKEEPER', 'GOOSEBUMPS', 'CREEPYPASTA', 'SLENDERMAN', 'HEROBRINE', 'BACKROOMS', 'LIMINAL', 'UNCANNY',
+    
+    // Hidden Fantasy Advanced (6-8 letters)
+    'ARCHMAGE', 'GRANDMASTER', 'OVERLORD', 'WARLORD', 'NECROMANCER', 'ENCHANTER', 'ILLUSIONIST', 'CONJURER',
+    'SPELLCASTER', 'WITCHCRAFT', 'SORCERY', 'WIZARDRY', 'ALCHEMY', 'TRANSMUTE', 'POLYMORPH', 'SHAPESHIFTER',
+    'BASILISK', 'MANTICORE', 'MINOTAUR', 'CENTAUR', 'SATYR', 'NYMPH', 'DRYAD', 'NAIAD',
+    'EXCALIBUR', 'MJOLNIR', 'GUNGNIR', 'AEGIS', 'AMULET', 'TALISMAN', 'ARTIFACT', 'RELIC',
+    
+    // Hidden Sci-Fi Advanced (6-8 letters)
+    'HYPERDRIVE', 'WARPCORE', 'ANTIMATTER', 'DARKMATTER', 'SINGULARITY', 'WORMHOLE', 'TESSERACT', 'MULTIVERSE',
+    'CYBERPUNK', 'STEAMPUNK', 'DIESELPUNK', 'SOLARPUNK', 'BIOPUNK', 'NANOPUNK', 'ATOMPUNK', 'RETROFUTURE',
+    'XENOMORPH', 'PREDATOR', 'TERMINATOR', 'SKYNET', 'MATRIX', 'ARCHITECT', 'ORACLE', 'MORPHEUS',
+    'ENTERPRISE', 'MILLENNIUM', 'FALCON', 'DELOREAN', 'TARDIS', 'NORMANDY', 'SERENITY', 'GALACTICA',
+    
+    // Classic Gaming Advanced (6-8 letters)
+    'DARKSOULS', 'BLOODBORNE', 'SEKIRO', 'ELDENRING', 'HOLLOWKNIGHT', 'CUPHEAD', 'CELESTE', 'UNDERTALE',
+    'DELTARUNE', 'METROID', 'CASTLEVANIA', 'MEGAMAN', 'CONTRA', 'GRADIUS', 'RTYPE', 'GALAGA',
+    'PACMAN', 'DONKEY', 'KONG', 'STREET', 'FIGHTER', 'MORTAL', 'KOMBAT', 'TEKKEN',
+    'SMASHBROS', 'FINALFANTASY', 'KINGDOMHEARTS', 'PERSONA', 'XENOBLADE', 'FIREEMBLEM', 'POKEMON', 'DIGIMON',
+    
+    // Movie Quotes & References (6-8 letters)
+    'FRANCHISE', 'REBOOT', 'SEQUEL', 'PREQUEL', 'SPINOFF', 'CROSSOVER', 'MULTIVERSE', 'TIMELINE',
+    'CLIFFHANGER', 'PLOTTWIST', 'MCGUFFIN', 'DEUSMACHINA', 'CHEKHOV', 'REDHERRING', 'FAKEOUT', 'JUMPSCARE',
+    'WILHELM', 'SCREAM', 'INCEPTION', 'DICAPRIO', 'BRANDO', 'PACINO', 'DENIRO', 'NICHOLSON',
+    'SPIELBERG', 'TARANTINO', 'SCORSESE', 'KUBRICK', 'NOLAN', 'VILLENEUVE', 'FINCHER', 'WRIGHT',
+    
+    // Twitch/Streaming Advanced (6-8 letters)
+    'PARASOCIAL', 'DEMONETIZED', 'SHADOWBAN', 'ALGORITHM', 'CLICKBAIT', 'THUMBNAIL', 'WATCHTIME', 'RETENTION',
+    'SUBSCRIBER', 'MEMBERSHIP', 'SUPERCHAT', 'DONATION', 'MERCH', 'SPONSOR', 'AFFILIATE', 'PARTNER',
+    'COLLABORATION', 'REACTION', 'COMMENTARY', 'ROAST', 'EXPOSED', 'CANCELLED', 'COMEBACK', 'REDEMPTION',
   ],
   extreme: [
     // Technology & Science (6-12+ letters)
@@ -459,6 +650,67 @@ export const WORD_LISTS = {
     'SUPERNOVA', 'NEUTRON', 'STARS', 'WHITE', 'DWARFS', 'RED', 'GIANTS', 'BLUE', 'GIANTS',
     'SPACE', 'EXPLORATION', 'MARS', 'MISSION', 'MOON', 'LANDING', 'INTERNATIONAL', 'SPACE', 'STATION',
     'JAMES', 'WEBB', 'SPACE', 'TELESCOPE', 'HUBBLE', 'SPACE', 'TELESCOPE', 'SPITZER', 'SPACE', 'TELESCOPE',
+    
+    // ===== COMEDIC & FUN WORDS EXTREME =====
+    // Ultimate Internet Culture (8-14 letters)
+    'RICKROLLED', 'BABYSHARK', 'DESPACITO', 'GANGNAMSTYLE', 'HARLEMSHAKE', 'ICEBUCKET', 'PLANKING', 'DABBING',
+    'FLOSSING', 'WOAHING', 'RENEGADE', 'SAVAGELOVELY', 'VIBECHECK', 'NOCONTEXT', 'OUTOFPOCKET', 'DOWNBAD',
+    'TOUCHGRASS', 'TERMINALLY', 'ONLINE', 'CHRONICALLY', 'BRAINROT', 'SKIBIDITOILET', 'OHIOSIGMA', 'RIZZCITY',
+    'SCREAMING', 'CRYING', 'THROWING', 'UNHINGED', 'FERAL', 'GOBLINMODE', 'GRIMACE', 'SHAKE',
+    
+    // Legendary Absurdity (8-14 letters)
+    'FLIBBERTIGIBBET', 'GOBBLEDYGOOK', 'WHATCHAMACALLIT', 'THINGAMAJIG', 'DOOHICKEY', 'THINGAMABOB', 'WHATSIT', 'GIZMO',
+    'SHENANIGANISM', 'TOMFOOLERING', 'MONKEYSHINES', 'HANKYRANKY', 'HIGHFALUTIN', 'HOITYTOITY', 'NAMBYRAMBY', 'WISHY',
+    'WASHY', 'HUMDRUM', 'HODGEPODGE', 'MISHMASH', 'RIGMAROLE', 'HULLABALOO', 'RAZZMATAZZ', 'PIZZAZZ',
+    'DISCOMBOBULATED', 'FLUMMOXED', 'BEFUDDLED', 'BEWILDERED', 'BAMBOOZLED', 'HORNSWOGGLED', 'SNOOKERED', 'HOODWINKED',
+    
+    // Epic Expressions (8-14 letters)
+    'SUPERCALIFRAGILISTICEXPIALIDOCIOUS', 'ANTIDISESTABLISHMENTARIANISM', 'FLOCCINAUCINIHILIPILIFICATION', 'PNEUMONOULTRAMICROSCOPICSILICOVOLCANOCONIOSIS',
+    'HIPPOPOTOMONSTROSESQUIPPEDALIOPHOBIA', 'HONORIFICABILITUDINITY', 'THYROPARATHYROIDECTOMIZED', 'SPECTROPHOTOFLUOROMETRICALLY',
+    'INCOMPREHENSIBILITY', 'COUNTERREVOLUTIONARY', 'DISPROPORTIONATELY', 'CHARACTERISTICALLY', 'ENTHUSIASTICALLY', 'EXTRAORDINARILY',
+    'UNCHARACTERISTICALLY', 'COUNTERINTUITIVELY', 'OVERWHELMINGLY', 'UNDERWHELMINGLY', 'UNAPOLOGETICALLY', 'UNCONDITIONALLY',
+    
+    // Hidden Horror Supreme (8-14 letters)
+    'NIGHTMARISH', 'BLOODCURDLING', 'HEARTSTOPPING', 'BONECHILLING', 'SPINEPITNGLING', 'HAIRTRIGGERING', 'GUTTWISTING', 'MINDBENDING',
+    'LOVECRAFTIAN', 'KAFKAESQUE', 'ORWELLIAN', 'DYSTOPIAN', 'APOCALYPTIC', 'POSTAPOCALYPTIC', 'CATACLYSMIC', 'ARMAGEDDON',
+    'ABOMINATION', 'ABERRATION', 'MONSTROSITY', 'ATROCITY', 'GROTESQUE', 'BLASPHEMY', 'SACRILEGE', 'PROFANITY',
+    'NECRONOMICON', 'MISKATONIC', 'ARKHAM', 'INNSMOUTH', 'DUNWICH', 'KINGSPORT', 'PROVIDENCE', 'KADATH',
+    
+    // Hidden Fantasy Supreme (8-14 letters)
+    'DRAGONSLAYER', 'GODSLAYER', 'TITANSLAYER', 'DEMONHUNTER', 'WITCHHUNTER', 'VAMPIREHUNTER', 'MONSTERHUNTER', 'BEASTHUNTER',
+    'WORLDBREAKER', 'REALMSHATTER', 'DIMENSIONRIFT', 'VOIDWALKER', 'SHADOWSTEP', 'NIGHTBLADE', 'DUSKBRINGER', 'DAWNBREAKER',
+    'STORMBRINGER', 'FLAMEBRINGER', 'FROSTWEAVER', 'THUNDERCALLER', 'EARTHSHAKER', 'WAVECRASHER', 'WINDWALKER', 'STARFORGER',
+    'MAGEBANE', 'RUNEBREAKER', 'SPELLBREAKER', 'WARDBREAKER', 'SEALBREAKER', 'CHAINHATER', 'BONDBREAKER', 'OATHKEEPER',
+    
+    // Hidden Sci-Fi Supreme (8-14 letters)
+    'STARFIGHTER', 'SPACEMARINE', 'VOIDCRUISER', 'DARKTROOER', 'STORMTROOPER', 'CLONETROOPER', 'BATTLEDROID', 'WARFRAME',
+    'CYBERNETICS', 'BIOMECHANICS', 'NEURALLINK', 'BRAINCHIP', 'MINDUPLOAD', 'CONSCIOUSNESS', 'DIGITIZATION', 'TRANSCENDENCE',
+    'DYSONSHIRE', 'RINGWORLD', 'MEGASTRUCTURE', 'ARKSHIP', 'GENERATIONSHIP', 'SLEEPERSHIP', 'WORLDSHIP', 'PLANETSHIP',
+    'TERRAFORMING', 'MEGAENGINEERING', 'ASTROENGINEERING', 'STELLARENGINEERING', 'KARDASHEV', 'TYPEONE', 'TYPETWO', 'TYPETHREE',
+    
+    // Legendary Gaming (8-14 letters)
+    'SOULSBORNE', 'METROIDVANIA', 'ROGUELIKE', 'ROGUELITE', 'BULLETHILL', 'TOUHOURSK', 'DANMAKU', 'SHMUP',
+    'JRPG', 'ARPG', 'CRPG', 'MMORPG', 'MMORTS', 'MMOFPS', 'BATTLEROYALE', 'AUTOBATTLER',
+    'DECKBUILDER', 'CARDGAME', 'BOARDGAME', 'TABLETOP', 'DUNGEONCRAWL', 'HACKNSLASH', 'BEATMUP', 'PLATFORMER',
+    'SOKOBAN', 'PUZZLER', 'VISUALNOVEL', 'DATINGISM', 'GACHA', 'FREEMIUM', 'PAYTOPEN', 'LOOTBOX',
+    
+    // Movie Legend References (8-14 letters)
+    'ASTALAVISTA', 'HASTALAVISTA', 'ILLBEBACK', 'YOUREMYBOY', 'YIPPIEKAYAY', 'GROADYMCFLY', 'BACKINFUTURE', 'FLUXCAPACITOR',
+    'LIGHTSABER', 'FORCECHOKE', 'FORCEPUSH', 'MINDTRICK', 'JEDIMIND', 'SITHMORD', 'DARKSIDE', 'LIGHTSIDE',
+    'INFINITYSTONE', 'SOULSTONE', 'MINDSTONE', 'TIMESTONE', 'SPACESTONE', 'POWERSTONE', 'REALITYSTONE', 'THANOSSNAP',
+    'ONERINGTORULE', 'PRECIOUSSS', 'SHIREFOLK', 'MORDORBOUND', 'MINESOFMORIA', 'HELMSDEEP', 'ISENGUARD', 'ROHANRIDERS',
+    
+    // Ultimate Streaming (8-14 letters)
+    'PARASOCIALLY', 'DEMONITIZATION', 'SHADOWBANNED', 'ALGORITHMED', 'CONTENTCREATOR', 'INFLUENCER', 'STREAMER', 'YOUTUBER',
+    'TIKTOKER', 'INSTAGRAMMER', 'TWITCHSTREAMER', 'FACEBOOKLIVE', 'TWITTERSPACES', 'DISCORDSERVER', 'REDDITMOD', 'SUBREDDIT',
+    'SPONSORBLOCK', 'ADBLOCK', 'PREMIUM', 'SUPERCHAT', 'MEMBERSHIP', 'SUBBING', 'GIFTSUB', 'PRIMESUB',
+    'POGGERCHAMP', 'OMEGALULZ', 'PEPEHANDS', 'FEELSBADMAN', 'FEELSGOODMAN', 'MONKAOMEGA', 'PEPEGACLAP', 'KEKWAIT',
+    
+    // Sharp/Witty Cultural References (8-14 letters)
+    'SIMULACRA', 'HYPERREALITY', 'SPECTACLE', 'DETOURNEMENT', 'RECUPERATION', 'ALIENATION', 'REIFICATION', 'COMMODIFICATION',
+    'POSTMODERN', 'DECONSTRUCTIONISM', 'STRUCTURALISM', 'POSTSTRUCTURALISM', 'SEMIOTIC', 'HERMENEUTIC', 'DIALECTIC', 'HEURISTIC',
+    'PANOPTICON', 'BIOPOLITICS', 'NECROPOLITICS', 'ACCELERATIONISM', 'POSITIVISM', 'EMPIRICISM', 'RATIONALISM', 'PRAGMATISM',
+    'ZEITGEIST', 'WELTANSCHAUUNG', 'GESTALT', 'SCHADENFREUDE', 'WANDERLUST', 'FERNWEH', 'SEHNSUCHT', 'WALDEINSAMKEIT',
   ],
 } as const;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GameScore } from '@/types/game';
 import { ColorPalette, getPalette, DEFAULT_PALETTE_ID } from '@/lib/colorPalettes';
 import { loadSettings, loadProfile } from '@/lib/storage/gameStorage';
@@ -15,8 +15,8 @@ interface GameOverModalProps {
   onMenu: () => void;
   isVictory: boolean;
   palette?: ColorPalette;
-  cumulativeTotalTime?: number; // Total time across all levels
-  cumulativeTotalScore?: number; // Total score across all levels
+  cumulativeTotalTime?: number;
+  cumulativeTotalScore?: number;
 }
 
 export default function GameOverModal({
@@ -30,15 +30,15 @@ export default function GameOverModal({
   cumulativeTotalTime,
   cumulativeTotalScore,
 }: GameOverModalProps) {
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
   const currentPalette = palette || (() => {
     const settings = loadSettings();
     return getPalette(settings.colorPalette || DEFAULT_PALETTE_ID);
   })();
 
-  // Load profile for total score and total time
   const profile = loadProfile();
 
-  // Use cumulative total time from prop if provided, otherwise calculate from profile
   const totalTime = cumulativeTotalTime !== undefined 
     ? cumulativeTotalTime 
     : (() => {
@@ -47,7 +47,6 @@ export default function GameOverModal({
         return existingTotal + Math.round(currentLevelTime);
       })();
 
-  // Use cumulative total score from prop if provided, otherwise calculate from profile
   const totalScore = cumulativeTotalScore !== undefined
     ? cumulativeTotalScore
     : (() => {
@@ -62,7 +61,6 @@ export default function GameOverModal({
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  // Format time in seconds to MM:SS or HH:MM:SS
   const formatTime = (seconds: number): string => {
     const totalSeconds = Math.round(seconds);
     const hours = Math.floor(totalSeconds / 3600);
@@ -75,24 +73,22 @@ export default function GameOverModal({
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Get performance rating color
   const getRatingColor = (rating?: string) => {
     switch (rating) {
-      case 'S': return '#FFD700'; // Gold
-      case 'A': return '#00FF00'; // Green
-      case 'B': return '#00BFFF'; // Blue
-      case 'C': return '#FFA500'; // Orange
-      case 'D': return '#FF6347'; // Tomato
-      case 'F': return '#FF0000'; // Red
+      case 'S': return '#FFD700';
+      case 'A': return '#4ade80';
+      case 'B': return '#22d3ee';
+      case 'C': return '#fb923c';
+      case 'D': return '#f87171';
+      case 'F': return '#ef4444';
       default: return currentPalette.uiColors.primary;
     }
   };
 
-  // Get difficulty label
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return 'EASY';
-      case 'average': return 'AVERAGE';
+      case 'average': return 'AVG';
       case 'hard': return 'HARD';
       default: return 'EASY';
     }
@@ -101,9 +97,23 @@ export default function GameOverModal({
   const ratingColor = getRatingColor(score.performanceRating);
   const difficultyLabel = getDifficultyLabel(currentPalette.difficulty);
 
+  // Stat icons
+  const getStatIcon = (type: string) => {
+    switch (type) {
+      case 'words': return '📝';
+      case 'accuracy': return '🎯';
+      case 'combo': return '🔥';
+      case 'base': return '💎';
+      case 'time': return '⏱️';
+      case 'speed': return '⚡';
+      case 'length': return '📏';
+      case 'perfect': return '✨';
+      default: return '•';
+    }
+  };
+
   return (
     <div className={styles.overlay}>
-      {/* Music Player - keep playing during score screen */}
       <div className={styles.musicPlayerContainer}>
         <GameMusicPlayer palette={currentPalette} isPaused={false} />
       </div>
@@ -111,256 +121,291 @@ export default function GameOverModal({
       <div 
         className={styles.modal}
         style={{
-          borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
-        }}
+          '--primary-color': currentPalette.uiColors.primary,
+          '--secondary-color': currentPalette.uiColors.secondary,
+        } as React.CSSProperties}
       >
-        {/* Header with Performance Rating */}
+        {/* Victory/Defeat Banner */}
+        <div className={isVictory ? styles.victoryBanner : styles.defeatBanner} />
+
+        {/* Compact Header */}
         <div className={styles.header}>
-          <h2 
-            className={styles.title}
-            style={{
-              textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)}`,
-            }}
-          >
-            {isVictory ? 'Level Complete!' : 'Time\'s Up!'}
-          </h2>
+          <div className={styles.titleSection}>
+            <h2 className={styles.title} style={{
+              textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.6)}`,
+            }}>
+              {isVictory ? 'Level Complete!' : "Time's Up!"}
+            </h2>
+            <div className={styles.levelBadge}>
+              <span>Level {level}</span>
+              <span>•</span>
+              <span>{difficultyLabel}</span>
+            </div>
+          </div>
           
           {score.performanceRating && (
             <div 
               className={styles.performanceRating}
               style={{
                 background: `linear-gradient(135deg, ${hexToRgba(ratingColor, 0.2)} 0%, ${hexToRgba(ratingColor, 0.1)} 100%)`,
-                borderColor: hexToRgba(ratingColor, 0.5),
-                boxShadow: `0 0 20px ${hexToRgba(ratingColor, 0.3)}`,
+                borderColor: hexToRgba(ratingColor, 0.6),
+                boxShadow: `0 0 25px ${hexToRgba(ratingColor, 0.4)}`,
               }}
             >
               <span 
                 className={styles.ratingLetter}
                 style={{
                   color: ratingColor,
-                  textShadow: `0 0 15px ${hexToRgba(ratingColor, 0.8)}`,
+                  textShadow: `0 0 12px ${hexToRgba(ratingColor, 0.9)}`,
                 }}
               >
                 {score.performanceRating}
               </span>
-              <span className={styles.ratingLabel}>Performance</span>
+              <span className={styles.ratingLabel}>RANK</span>
             </div>
           )}
         </div>
-        
+
         {/* Score Section */}
         <div className={styles.scoreSection}>
-          <div className={styles.finalScore}>
-            <span className={styles.scoreLabel}>Level Score</span>
-            <span 
-              className={styles.scoreValue}
-              style={{
-                color: currentPalette.uiColors.primary,
-                textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)}`,
-              }}
-            >
-              {score.finalScore.toLocaleString()}
-            </span>
-          </div>
-          
-          {totalScore > 0 && (
-            <div className={styles.totalScoreSection}>
-              <span className={styles.totalScoreLabel}>Total Score</span>
+          {/* Main Scores */}
+          <div className={styles.scoresRow}>
+            <div className={`${styles.scoreBox} ${styles.primary}`}>
+              <span className={styles.scoreLabel}>Level Score</span>
               <span 
-                className={styles.totalScoreValue}
+                className={styles.scoreValue}
+                style={{
+                  color: currentPalette.uiColors.primary,
+                  textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)}`,
+                }}
+              >
+                {score.finalScore.toLocaleString()}
+              </span>
+            </div>
+            
+            <div className={styles.scoreBox}>
+              <span className={styles.scoreLabel}>Total Score</span>
+              <span 
+                className={`${styles.scoreValue} ${styles.totalScoreValue}`}
                 style={{
                   color: currentPalette.uiColors.secondary,
-                  textShadow: `0 0 20px ${hexToRgba(currentPalette.uiColors.secondary, 0.5)}`,
+                  textShadow: `0 0 15px ${hexToRgba(currentPalette.uiColors.secondary, 0.4)}`,
                 }}
               >
                 {totalScore.toLocaleString()}
               </span>
             </div>
-          )}
+          </div>
 
-          {/* Detailed Stats Grid */}
-          <div className={styles.stats}>
+          {/* Stats Grid - Compact 3 Column */}
+          <div className={styles.statsGrid}>
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Words Found</span>
+              <span className={styles.statIcon}>{getStatIcon('words')}</span>
+              <span className={styles.statLabel}>Words</span>
               <span className={styles.statValue}>{score.wordsFound}</span>
             </div>
+            
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Base Points</span>
-              <span className={styles.statValue}>{score.totalPoints.toLocaleString()}</span>
-            </div>
-            {score.timeBonus > 0 && (
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>Time Bonus</span>
-                <span className={styles.statValue} style={{ color: '#00FF00' }}>
-                  +{score.timeBonus.toLocaleString()}
-                </span>
-              </div>
-            )}
-            {score.comboMultiplier > 1 && (
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>Combo Multiplier</span>
-                <span className={styles.statValue} style={{ color: '#FFD700' }}>
-                  x{score.comboMultiplier.toFixed(2)}
-                </span>
-              </div>
-            )}
-            {score.comboBonus && score.comboBonus > 0 && (
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>Combo Bonus</span>
-                <span className={styles.statValue} style={{ color: '#FFD700' }}>
-                  +{score.comboBonus.toLocaleString()}
-                </span>
-              </div>
-            )}
-            <div className={styles.stat}>
+              <span className={styles.statIcon}>{getStatIcon('accuracy')}</span>
               <span className={styles.statLabel}>Accuracy</span>
               <span 
                 className={styles.statValue}
                 style={{
-                  color: score.accuracy >= 90 ? '#00FF00' : score.accuracy >= 70 ? '#FFA500' : '#FF6347'
+                  color: score.accuracy >= 90 ? '#4ade80' : score.accuracy >= 70 ? '#fb923c' : '#f87171'
                 }}
               >
-                {score.accuracy.toFixed(1)}%
+                {score.accuracy.toFixed(0)}%
               </span>
             </div>
-            {score.accuracyBonus !== undefined && (
+
+            <div className={styles.stat}>
+              <span className={styles.statIcon}>{getStatIcon('base')}</span>
+              <span className={styles.statLabel}>Base Pts</span>
+              <span className={styles.statValue}>{score.totalPoints.toLocaleString()}</span>
+            </div>
+
+            {score.timeBonus > 0 && (
               <div className={styles.stat}>
-                <span className={styles.statLabel}>Accuracy Bonus</span>
-                <span className={styles.statValue}>+{score.accuracyBonus.toLocaleString()}</span>
-              </div>
-            )}
-            {score.perfectAccuracyBonus && score.perfectAccuracyBonus > 0 && (
-              <div className={styles.stat}>
-                <span className={styles.statLabel}>Perfect Bonus</span>
-                <span className={styles.statValue} style={{ color: '#FFD700' }}>
-                  +{score.perfectAccuracyBonus.toLocaleString()}
+                <span className={styles.statIcon}>{getStatIcon('time')}</span>
+                <span className={styles.statLabel}>Time +</span>
+                <span className={`${styles.statValue} ${styles.bonusValue}`}>
+                  +{score.timeBonus.toLocaleString()}
                 </span>
               </div>
             )}
+
+            {score.comboMultiplier > 1 && (
+              <div className={styles.stat}>
+                <span className={styles.statIcon}>{getStatIcon('combo')}</span>
+                <span className={styles.statLabel}>Combo</span>
+                <span className={styles.statValue} style={{ color: '#fbbf24' }}>
+                  x{score.comboMultiplier.toFixed(1)}
+                </span>
+              </div>
+            )}
+
             {score.speedBonus !== undefined && score.speedBonus > 0 && (
               <div className={styles.stat}>
-                <span className={styles.statLabel}>Speed Bonus</span>
-                <span className={styles.statValue} style={{ color: '#00BFFF' }}>
+                <span className={styles.statIcon}>{getStatIcon('speed')}</span>
+                <span className={styles.statLabel}>Speed +</span>
+                <span className={`${styles.statValue} ${styles.bonusValue}`}>
                   +{score.speedBonus.toLocaleString()}
                 </span>
               </div>
             )}
-            {score.wordLengthBonus !== undefined && score.wordLengthBonus > 0 && (
+
+            {score.accuracyBonus !== undefined && score.accuracyBonus > 0 && (
               <div className={styles.stat}>
-                <span className={styles.statLabel}>Word Length Bonus</span>
-                <span className={styles.statValue}>+{score.wordLengthBonus.toLocaleString()}</span>
+                <span className={styles.statIcon}>{getStatIcon('accuracy')}</span>
+                <span className={styles.statLabel}>Acc +</span>
+                <span className={`${styles.statValue} ${styles.bonusValue}`}>
+                  +{score.accuracyBonus.toLocaleString()}
+                </span>
               </div>
             )}
-            {score.levelTime !== undefined && (
-              <>
-                <div className={styles.stat}>
-                  <span className={styles.statLabel}>Level Time</span>
-                  <span className={styles.statValue}>{formatTime(score.levelTime)}</span>
+
+            {score.perfectAccuracyBonus && score.perfectAccuracyBonus > 0 && (
+              <div className={styles.stat}>
+                <span className={styles.statIcon}>{getStatIcon('perfect')}</span>
+                <span className={styles.statLabel}>Perfect</span>
+                <span className={styles.statValue} style={{ color: '#fbbf24' }}>
+                  +{score.perfectAccuracyBonus.toLocaleString()}
+                </span>
+              </div>
+            )}
+
+            {score.wordLengthBonus !== undefined && score.wordLengthBonus > 0 && (
+              <div className={styles.stat}>
+                <span className={styles.statIcon}>{getStatIcon('length')}</span>
+                <span className={styles.statLabel}>Length +</span>
+                <span className={`${styles.statValue} ${styles.bonusValue}`}>
+                  +{score.wordLengthBonus.toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Multipliers Row */}
+          {(score.levelMultiplier || score.difficultyMultiplier) && (
+            <div className={styles.multipliersRow}>
+              {score.levelMultiplier && score.levelMultiplier > 1 && (
+                <div className={styles.multiplier}>
+                  <span className={styles.multiplierLabel}>Lv.{level}</span>
+                  <span className={styles.multiplierValue}>×{score.levelMultiplier.toFixed(1)}</span>
                 </div>
-                <div className={styles.stat}>
-                  <span className={styles.statLabel}>Total Time</span>
+              )}
+              {score.difficultyMultiplier && (
+                <div className={styles.multiplier}>
+                  <span className={styles.multiplierLabel}>{difficultyLabel}</span>
+                  <span className={styles.multiplierValue}>×{score.difficultyMultiplier.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Time Row */}
+          {score.levelTime !== undefined && (
+            <div className={styles.timeRow}>
+              <div className={styles.timeStat}>
+                <span className={styles.timeIcon}>⏱️</span>
+                <div>
+                  <span className={styles.timeLabel}>Level Time</span>
+                  <span className={styles.timeValue}>{formatTime(score.levelTime)}</span>
+                </div>
+              </div>
+              <div className={styles.timeStat}>
+                <span className={styles.timeIcon}>🕐</span>
+                <div>
+                  <span className={styles.timeLabel}>Total Time</span>
                   <span 
-                    className={styles.statValue}
-                    style={{
-                      color: currentPalette.uiColors.primary,
-                    }}
+                    className={styles.timeValue}
+                    style={{ color: currentPalette.uiColors.primary }}
                   >
                     {formatTime(totalTime)}
                   </span>
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Multipliers Section */}
-          {(score.levelMultiplier || score.difficultyMultiplier) && (
-            <div className={styles.multipliersSection}>
-              <div className={styles.multiplierHeader}>Score Multipliers</div>
-              <div className={styles.multipliers}>
-                {score.levelMultiplier && score.levelMultiplier > 1 && (
-                  <div className={styles.multiplier}>
-                    <span className={styles.multiplierLabel}>Level {level}</span>
-                    <span className={styles.multiplierValue}>x{score.levelMultiplier.toFixed(2)}</span>
-                  </div>
-                )}
-                {score.difficultyMultiplier && (
-                  <div className={styles.multiplier}>
-                    <span className={styles.multiplierLabel}>{difficultyLabel}</span>
-                    <span className={styles.multiplierValue}>x{score.difficultyMultiplier.toFixed(1)}</span>
-                  </div>
-                )}
               </div>
             </div>
           )}
 
-          {/* Score Breakdown (if available) */}
+          {/* Detailed Breakdown Toggle */}
           {score.scoreBreakdown && (
-            <details className={styles.breakdownDetails}>
-              <summary className={styles.breakdownSummary}>Detailed Breakdown</summary>
-              <div className={styles.breakdown}>
-                <div className={styles.breakdownRow}>
-                  <span>Base Score</span>
-                  <span>{score.scoreBreakdown.baseScore.toLocaleString()}</span>
-                </div>
-                {score.scoreBreakdown.timeBonus > 0 && (
+            <>
+              <button 
+                className={styles.breakdownToggle}
+                onClick={() => setShowBreakdown(!showBreakdown)}
+              >
+                <span>Detailed Breakdown</span>
+                <span className={`${styles.breakdownIcon} ${showBreakdown ? styles.open : ''}`}>▼</span>
+              </button>
+
+              <div className={`${styles.breakdownPanel} ${showBreakdown ? styles.open : ''}`}>
+                <div className={styles.breakdownContent}>
                   <div className={styles.breakdownRow}>
-                    <span>Time Bonus</span>
-                    <span>+{score.scoreBreakdown.timeBonus.toLocaleString()}</span>
+                    <span>Base Score</span>
+                    <span>{score.scoreBreakdown.baseScore.toLocaleString()}</span>
                   </div>
-                )}
-                {score.scoreBreakdown.accuracyBonus > 0 && (
+                  {score.scoreBreakdown.timeBonus > 0 && (
+                    <div className={styles.breakdownRow}>
+                      <span>Time Bonus</span>
+                      <span style={{ color: '#4ade80' }}>+{score.scoreBreakdown.timeBonus.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {score.scoreBreakdown.accuracyBonus > 0 && (
+                    <div className={styles.breakdownRow}>
+                      <span>Accuracy Bonus</span>
+                      <span style={{ color: '#4ade80' }}>+{score.scoreBreakdown.accuracyBonus.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {score.scoreBreakdown.comboBonus > 0 && (
+                    <div className={styles.breakdownRow}>
+                      <span>Combo Bonus</span>
+                      <span style={{ color: '#fbbf24' }}>+{score.scoreBreakdown.comboBonus.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {score.scoreBreakdown.speedBonus > 0 && (
+                    <div className={styles.breakdownRow}>
+                      <span>Speed Bonus</span>
+                      <span style={{ color: '#22d3ee' }}>+{score.scoreBreakdown.speedBonus.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {score.scoreBreakdown.wordLengthBonus > 0 && (
+                    <div className={styles.breakdownRow}>
+                      <span>Word Length Bonus</span>
+                      <span style={{ color: '#4ade80' }}>+{score.scoreBreakdown.wordLengthBonus.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className={styles.breakdownDivider} />
                   <div className={styles.breakdownRow}>
-                    <span>Accuracy Bonus</span>
-                    <span>+{score.scoreBreakdown.accuracyBonus.toLocaleString()}</span>
+                    <span>Before Multipliers</span>
+                    <span>{score.scoreBreakdown.beforeMultipliers.toLocaleString()}</span>
                   </div>
-                )}
-                {score.scoreBreakdown.comboBonus > 0 && (
-                  <div className={styles.breakdownRow}>
-                    <span>Combo Bonus</span>
-                    <span>+{score.scoreBreakdown.comboBonus.toLocaleString()}</span>
+                  {score.scoreBreakdown.levelMultiplier > 1 && (
+                    <div className={styles.breakdownRow}>
+                      <span>× Level Multiplier</span>
+                      <span style={{ color: '#fbbf24' }}>×{score.scoreBreakdown.levelMultiplier.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {score.scoreBreakdown.difficultyMultiplier > 1 && (
+                    <div className={styles.breakdownRow}>
+                      <span>× Difficulty</span>
+                      <span style={{ color: '#fbbf24' }}>×{score.scoreBreakdown.difficultyMultiplier.toFixed(1)}</span>
+                    </div>
+                  )}
+                  <div className={styles.breakdownDivider} />
+                  <div className={`${styles.breakdownRow} ${styles.breakdownTotal}`}>
+                    <span>Final Score</span>
+                    <span style={{ color: currentPalette.uiColors.primary }}>
+                      {score.scoreBreakdown.finalScore.toLocaleString()}
+                    </span>
                   </div>
-                )}
-                {score.scoreBreakdown.speedBonus > 0 && (
-                  <div className={styles.breakdownRow}>
-                    <span>Speed Bonus</span>
-                    <span>+{score.scoreBreakdown.speedBonus.toLocaleString()}</span>
-                  </div>
-                )}
-                {score.scoreBreakdown.wordLengthBonus > 0 && (
-                  <div className={styles.breakdownRow}>
-                    <span>Word Length Bonus</span>
-                    <span>+{score.scoreBreakdown.wordLengthBonus.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className={styles.breakdownDivider} />
-                <div className={styles.breakdownRow}>
-                  <span>Before Multipliers</span>
-                  <span>{score.scoreBreakdown.beforeMultipliers.toLocaleString()}</span>
-                </div>
-                {score.scoreBreakdown.levelMultiplier > 1 && (
-                  <div className={styles.breakdownRow}>
-                    <span>× Level Multiplier</span>
-                    <span>x{score.scoreBreakdown.levelMultiplier.toFixed(2)}</span>
-                  </div>
-                )}
-                {score.scoreBreakdown.difficultyMultiplier > 1 && (
-                  <div className={styles.breakdownRow}>
-                    <span>× Difficulty Multiplier</span>
-                    <span>x{score.scoreBreakdown.difficultyMultiplier.toFixed(1)}</span>
-                  </div>
-                )}
-                <div className={styles.breakdownDivider} />
-                <div className={styles.breakdownRow} style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                  <span>Final Score</span>
-                  <span style={{ color: currentPalette.uiColors.primary }}>
-                    {score.scoreBreakdown.finalScore.toLocaleString()}
-                  </span>
                 </div>
               </div>
-            </details>
+            </>
           )}
         </div>
 
+        {/* Actions - Horizontal */}
         <div className={styles.actions}>
           {isVictory && (
             <button 
@@ -368,7 +413,7 @@ export default function GameOverModal({
               onClick={onContinue}
               style={{
                 background: `linear-gradient(135deg, ${currentPalette.uiColors.primary} 0%, ${currentPalette.uiColors.secondary} 100%)`,
-                boxShadow: `0 4px 15px ${hexToRgba(currentPalette.uiColors.primary, 0.4)}`,
+                boxShadow: `0 4px 20px ${hexToRgba(currentPalette.uiColors.primary, 0.4)}`,
               }}
             >
               Continue
@@ -377,13 +422,13 @@ export default function GameOverModal({
           <button 
             className={`${styles.button} ${styles.secondary}`} 
             onClick={onRetry}
-            style={{
-              boxShadow: `0 6px 20px ${hexToRgba(currentPalette.uiColors.primary, 0.6)}`,
-            }}
           >
             Retry
           </button>
-          <button className={`${styles.button} ${styles.tertiary}`} onClick={onMenu}>
+          <button 
+            className={`${styles.button} ${styles.tertiary}`} 
+            onClick={onMenu}
+          >
             Menu
           </button>
         </div>

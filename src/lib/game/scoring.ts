@@ -2,35 +2,74 @@ import { GameScore, GameWord, Level } from '@/types/game';
 import { getDifficultyMultiplier, PaletteDifficulty } from '@/lib/colorPalettes';
 
 /**
- * Enhanced combo multiplier calculation
- * Exponential scaling for higher combos to reward skill
- * - 1-3 combos: Linear (1.1x, 1.2x, 1.3x)
- * - 4-7 combos: Moderate scaling (1.45x, 1.6x, 1.75x, 1.9x)
- * - 8-10 combos: High scaling (2.1x, 2.3x, 2.5x)
- * - 11+ combos: Exponential (2.7x, 2.9x, 3.2x, etc.)
+ * Performance-based combo multiplier calculation
+ * Balanced to reward skill while maintaining fairness
+ * 
+ * Combo is based on consecutive word finds (starts after 3 words)
+ * Multiplier scales based on:
+ * - Base combo progression (moderate scaling)
+ * - Accuracy bonus (higher accuracy = better multiplier)
+ * - Speed bonus (faster finds = better multiplier)
+ * 
+ * Formula: baseMultiplier * (1 + accuracyBonus) * (1 + speedBonus)
  */
-export function calculateComboMultiplier(combo: number): number {
+export function calculateComboMultiplier(
+  combo: number,
+  accuracy: number = 100,
+  averageTimeBetweenWords: number = 0 // seconds between word finds
+): number {
   if (combo <= 0) return 1;
   
+  // Base combo multiplier - moderate scaling to prevent excessive scores
+  let baseMultiplier = 1.0;
+  
   if (combo <= 3) {
-    // Linear for first 3 combos
-    return 1 + (combo * 0.1);
+    // First 3 combos: Small linear boost (1.0x, 1.05x, 1.1x, 1.15x)
+    baseMultiplier = 1.0 + (combo * 0.05);
   } else if (combo <= 7) {
-    // Moderate scaling for 4-7 combos
-    const base = 1.3;
-    const extra = combo - 3;
-    return base + (extra * 0.15);
-  } else if (combo <= 10) {
-    // High scaling for 8-10 combos
-    const base = 1.9;
-    const extra = combo - 7;
-    return base + (extra * 0.2);
+    // 4-7 combos: Moderate boost (1.2x, 1.25x, 1.3x, 1.35x)
+    baseMultiplier = 1.2 + ((combo - 3) * 0.05);
+  } else if (combo <= 12) {
+    // 8-12 combos: Good boost (1.4x, 1.45x, 1.5x, 1.55x, 1.6x)
+    baseMultiplier = 1.4 + ((combo - 7) * 0.05);
+  } else if (combo <= 20) {
+    // 13-20 combos: High boost (1.65x to 2.0x)
+    baseMultiplier = 1.65 + ((combo - 12) * 0.04375);
   } else {
-    // Exponential for 11+ combos
-    const base = 2.5;
-    const extra = combo - 10;
-    return base + (extra * 0.2) + Math.pow(extra, 1.5) * 0.05;
+    // 21+ combos: Very high but capped (2.0x to 2.5x max)
+    baseMultiplier = Math.min(2.5, 2.0 + ((combo - 20) * 0.05));
   }
+  
+  // Accuracy bonus: Reward high accuracy
+  // 100% accuracy = +20% multiplier
+  // 90% accuracy = +10% multiplier
+  // 80% accuracy = +5% multiplier
+  // Below 80% = no bonus
+  const accuracyBonus = accuracy >= 80 
+    ? (accuracy - 80) / 100 // 0 to 0.2 (0% to 20% bonus)
+    : 0;
+  
+  // Speed bonus: Reward fast consecutive finds
+  // Average time < 2s = +15% multiplier
+  // Average time < 4s = +10% multiplier
+  // Average time < 6s = +5% multiplier
+  // Slower = no bonus
+  let speedBonus = 0;
+  if (averageTimeBetweenWords > 0 && averageTimeBetweenWords < 6) {
+    if (averageTimeBetweenWords < 2) {
+      speedBonus = 0.15; // Very fast
+    } else if (averageTimeBetweenWords < 4) {
+      speedBonus = 0.10; // Fast
+    } else {
+      speedBonus = 0.05; // Moderate speed
+    }
+  }
+  
+  // Apply bonuses to base multiplier
+  const finalMultiplier = baseMultiplier * (1 + accuracyBonus) * (1 + speedBonus);
+  
+  // Cap at 3.0x to maintain balance
+  return Math.min(3.0, finalMultiplier);
 }
 
 /**
@@ -83,29 +122,50 @@ export function calculateScore(
   combo: number = 0,
   totalAttempts: number = 0,
   correctFinds: number = 0,
-  paletteDifficulty: PaletteDifficulty = 'easy'
+  paletteDifficulty: PaletteDifficulty = 'easy',
+  timeSinceLastWord?: number // Time in seconds since last word was found
 ): GameScore {
   const basePoints = word.points;
   
   // Time bonus (if time limit exists)
   const timeBonus = timeRemaining ? Math.floor(timeRemaining * 2) : 0;
   
-  // Enhanced combo multiplier
-  const comboMultiplier = calculateComboMultiplier(combo);
-  
-  // Palette difficulty multiplier
-  const difficultyMultiplier = getDifficultyMultiplier(paletteDifficulty);
-  
   // Accuracy calculation
   const accuracy = totalAttempts > 0 
     ? (correctFinds / totalAttempts) * 100 
     : 100;
+  
+  // Performance-based combo multiplier (includes accuracy and speed bonuses)
+  const comboMultiplier = calculateComboMultiplier(
+    combo,
+    accuracy,
+    timeSinceLastWord || 0
+  );
+  
+  // Palette difficulty multiplier
+  const difficultyMultiplier = getDifficultyMultiplier(paletteDifficulty);
+  
+  // Accuracy bonus points
   const accuracyBonus = Math.floor(accuracy);
   
+  // Performance-based combo bonus
+  let comboBonus = 0;
+  if (combo > 0) {
+    const baseBonus = combo * 5;
+    const accuracyMultiplier = accuracy >= 90 ? 1.5 : accuracy >= 80 ? 1.25 : 1.0;
+    let speedMultiplier = 1.0;
+    if (timeSinceLastWord && timeSinceLastWord < 6) {
+      if (timeSinceLastWord < 2) speedMultiplier = 1.5;
+      else if (timeSinceLastWord < 4) speedMultiplier = 1.25;
+      else speedMultiplier = 1.1;
+    }
+    comboBonus = Math.floor(baseBonus * accuracyMultiplier * speedMultiplier);
+  }
+  
   // Final score calculation with difficulty multiplier
-  const finalScore = Math.floor(
-    ((basePoints + timeBonus) * comboMultiplier + accuracyBonus) * difficultyMultiplier
-  );
+  const beforeMultipliers = basePoints + timeBonus + accuracyBonus + comboBonus;
+  const afterCombo = beforeMultipliers * comboMultiplier;
+  const finalScore = Math.floor(afterCombo * difficultyMultiplier);
   
   return {
     wordsFound: 1,
@@ -115,6 +175,7 @@ export function calculateScore(
     accuracy,
     finalScore,
     difficultyMultiplier,
+    comboBonus,
   };
 }
 
@@ -151,20 +212,56 @@ export function calculateFinalScore(
   // Enhanced: 3 points per second remaining (increased from 2)
   const timeBonus = timeRemaining ? Math.floor(timeRemaining * 3) : 0;
   
-  // Enhanced combo multiplier with exponential scaling
-  // Use the calculated combo based on words found
-  const comboMultiplier = calculateComboMultiplier(finalCombo);
+  // Performance-based combo multiplier
+  // Calculate average time between word finds for speed bonus
+  const foundWordsWithTimes = foundWords.filter(w => w.foundAt !== undefined);
+  let averageTimeBetweenWords = 0;
+  if (foundWordsWithTimes.length > 1 && levelTime) {
+    const timeSpans: number[] = [];
+    const sortedWords = [...foundWordsWithTimes].sort((a, b) => (a.foundAt || 0) - (b.foundAt || 0));
+    for (let i = 1; i < sortedWords.length; i++) {
+      const timeDiff = ((sortedWords[i].foundAt || 0) - (sortedWords[i - 1].foundAt || 0)) / 1000; // Convert to seconds
+      if (timeDiff > 0) {
+        timeSpans.push(timeDiff);
+      }
+    }
+    if (timeSpans.length > 0) {
+      averageTimeBetweenWords = timeSpans.reduce((sum, t) => sum + t, 0) / timeSpans.length;
+    }
+  }
   
-  // Combo bonus: Additional points based on combo achieved
-  // Rewards finding more words (combo starts after 3 words)
-  const comboBonus = finalCombo > 0 
-    ? Math.floor(finalCombo * 10 * (1 + (finalCombo - 1) * 0.2)) // Exponential combo bonus
-    : 0;
-  
-  // Accuracy: Percentage of correct clicks
+  // Accuracy: Percentage of correct clicks (calculated first as it's used by other calculations)
   const accuracy = totalAttempts > 0 
     ? (correctFinds / totalAttempts) * 100 
     : 100;
+
+  // Enhanced combo multiplier with performance bonuses
+  const comboMultiplier = calculateComboMultiplier(finalCombo, accuracy, averageTimeBetweenWords);
+  
+  // Performance-based combo bonus
+  // Base bonus scales with combo, but is balanced
+  let comboBonus = 0;
+  if (finalCombo > 0) {
+    // Base bonus: 5 points per combo level
+    const baseBonus = finalCombo * 5;
+    
+    // Accuracy multiplier for bonus
+    const accuracyMultiplier = accuracy >= 90 ? 1.5 : accuracy >= 80 ? 1.25 : 1.0;
+    
+    // Speed multiplier for bonus (faster = more bonus)
+    let speedMultiplier = 1.0;
+    if (averageTimeBetweenWords > 0) {
+      if (averageTimeBetweenWords < 2) {
+        speedMultiplier = 1.5; // Very fast
+      } else if (averageTimeBetweenWords < 4) {
+        speedMultiplier = 1.25; // Fast
+      } else if (averageTimeBetweenWords < 6) {
+        speedMultiplier = 1.1; // Moderate
+      }
+    }
+    
+    comboBonus = Math.floor(baseBonus * accuracyMultiplier * speedMultiplier);
+  }
   
   // Accuracy bonus: Base accuracy points
   const accuracyBonus = Math.floor(accuracy);

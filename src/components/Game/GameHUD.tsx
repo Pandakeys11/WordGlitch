@@ -6,6 +6,7 @@ import { getPalette, ColorPalette } from '@/lib/colorPalettes';
 import GameMusicPlayer from './GameMusicPlayer';
 import GameProfileCard from './GameProfileCard';
 import styles from './GameHUD.module.css';
+import gameScreenStyles from './GameScreen.module.css';
 
 interface GameHUDProps {
   score: number;
@@ -92,6 +93,16 @@ export default function GameHUD({
             </div>
           )}
         </div>
+        <img 
+          src="/Playground_Title_white.png" 
+          alt="Playground Tools" 
+          className={gameScreenStyles.logo}
+        />
+        <img 
+          src="/Playground_Title_white.png" 
+          alt="Playground Tools" 
+          className={gameScreenStyles.logoRight}
+        />
         <div className={styles.topBarActions}>
           <div className={styles.profileCardWrapper}>
             <GameProfileCard />

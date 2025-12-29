@@ -185,23 +185,33 @@ export function generateWords(
 }
 
 function getWordsForDifficulty(level: Level): string[] {
-  const allWords: string[] = [];
+  // ALL words are available at ALL levels - no restrictions!
+  // This includes all hidden words, comedic words, horror, fantasy, sci-fi, etc.
+  // The word length requirements (minWordLength/maxWordLength) will filter appropriately
+  const allWords: string[] = [
+    ...WORD_LISTS.easy,
+    ...WORD_LISTS.medium,
+    ...WORD_LISTS.hard,
+    ...WORD_LISTS.extreme,
+  ];
   
-  // Include words from current and easier difficulties
-  if (level.difficulty === 'easy' || level.level <= 5) {
-    allWords.push(...WORD_LISTS.easy);
-  }
-  if (level.difficulty === 'medium' || level.level <= 10) {
-    allWords.push(...WORD_LISTS.medium);
-  }
-  if (level.difficulty === 'hard' || level.level <= 20) {
-    allWords.push(...WORD_LISTS.hard);
-  }
-  if (level.difficulty === 'extreme') {
-    allWords.push(...WORD_LISTS.extreme);
-  }
+  // Remove duplicates for cleaner selection
+  const uniqueWords = [...new Set(allWords)];
+  
+  // Shuffle the array to ensure truly random selection across all categories
+  return shuffleArray(uniqueWords);
+}
 
-  return allWords;
+/**
+ * Fisher-Yates shuffle algorithm for truly random word selection
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 function findValidPosition(
@@ -266,7 +276,27 @@ function generateFallbackWords(
   bottomExclusionRows: number = 0
 ): GameWord[] {
   const words: GameWord[] = [];
-  const baseWords = ['WORD', 'GLITCH', 'GAME', 'FIND', 'PLAY'];
+  // Fun fallback words including hidden gems from all categories!
+  const baseWords = [
+    // Classics
+    'WORD', 'GLITCH', 'GAME', 'FIND', 'PLAY',
+    // Comedic
+    'YEET', 'BONK', 'VIBE', 'MEME', 'BRUH', 'POGGERS', 'SLAY', 'FLEX',
+    // Horror hidden
+    'DOOM', 'GHOST', 'SKULL', 'CURSE', 'DEMON', 'REAPER',
+    // Fantasy hidden
+    'MAGE', 'WIZARD', 'DRAGON', 'KNIGHT', 'RUNE', 'SPELL',
+    // Sci-Fi hidden
+    'WARP', 'LASER', 'ALIEN', 'NEXUS', 'CYBER', 'DROID',
+    // Gaming
+    'BOSS', 'LOOT', 'QUEST', 'COMBO', 'EPIC', 'LEVEL',
+    // Internet
+    'BASED', 'GOAT', 'CHAD', 'SIGMA', 'RIZZ', 'COPE'
+  ];
+  
+  // Shuffle fallback words for variety
+  const shuffledWords = shuffleArray(baseWords);
+  
   const playableStartRow = topExclusionRows;
   const playableEndRow = rows - bottomExclusionRows;
   const playableRows = Math.max(1, playableEndRow - playableStartRow);
@@ -275,7 +305,7 @@ function generateFallbackWords(
   const durationRange = getWordVisibilityDuration(level.level);
   
   for (let i = 0; i < level.wordCount; i++) {
-    const word = baseWords[i % baseWords.length];
+    const word = shuffledWords[i % shuffledWords.length];
     
     // Ensure word fits in the available columns
     if (word.length > cols) continue; // Skip words that don't fit

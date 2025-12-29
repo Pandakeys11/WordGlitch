@@ -119,7 +119,7 @@ export function getTriadicColors(hex: string): string[] {
 /**
  * Convert RGB to HSL
  */
-function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -157,7 +157,7 @@ function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: n
 /**
  * Convert HSL to RGB
  */
-function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
   h /= 360;
   s /= 100;
   l /= 100;
@@ -323,6 +323,161 @@ export function meetsWCAGContrast(
   } else {
     return size === 'large' ? contrast >= 3.0 : contrast >= 4.5;
   }
+}
+
+/**
+ * Generate adaptive color variations for all difficulty palettes
+ * Creates colors that blend with glitch colors but maintain visibility
+ * @param baseColor - Base hidden word color from palette
+ * @param glitchColors - Array of glitch colors to blend with
+ * @param variationIndex - Index for color variation (0-5 for different shades)
+ * @param difficulty - Difficulty level ('easy', 'average', 'hard')
+ * @returns Adaptive color that maintains contrast
+ */
+export function generateAdaptiveColor(
+  baseColor: string,
+  glitchColors: string[],
+  variationIndex: number = 0,
+  difficulty: 'easy' | 'average' | 'hard' = 'hard'
+): string {
+  const baseRgb = hexToRgb(baseColor);
+  if (!baseRgb || glitchColors.length === 0) return baseColor;
+
+  // Get average glitch color
+  const avgGlitch = getAverageColor(glitchColors);
+  
+  // Difficulty-specific variation strategies
+  let blendAmount: number;
+  let minContrast: number;
+  let saturationBoost: number;
+  let brightnessVariation: number;
+  
+  switch (difficulty) {
+    case 'easy':
+      // Easy: High contrast, bold variations, minimal blending
+      blendAmount = (variationIndex / 6) * 0.15; // Max 15% blend
+      minContrast = 6.0; // High contrast requirement
+      saturationBoost = 20 + (variationIndex * 5); // Increase saturation
+      brightnessVariation = 15 + (variationIndex * 3); // Bright variations
+      break;
+    case 'average':
+      // Average: Moderate contrast, balanced variations
+      blendAmount = (variationIndex / 6) * 0.25; // Max 25% blend
+      minContrast = 4.5; // Moderate contrast
+      saturationBoost = 10 + (variationIndex * 3); // Moderate saturation
+      brightnessVariation = 10 + (variationIndex * 2); // Moderate brightness
+      break;
+    case 'hard':
+    default:
+      // Hard: Subtle variations, more blending
+      blendAmount = (variationIndex / 6) * 0.4; // Max 40% blend
+      minContrast = 2.5; // Lower contrast requirement
+      saturationBoost = 5 + (variationIndex * 2); // Subtle saturation
+      brightnessVariation = 5 + (variationIndex * 1); // Subtle brightness
+      break;
+  }
+  
+  // Blend base color with glitch colors
+  const blendedR = Math.round(baseRgb.r * (1 - blendAmount) + avgGlitch.r * blendAmount);
+  const blendedG = Math.round(baseRgb.g * (1 - blendAmount) + avgGlitch.g * blendAmount);
+  const blendedB = Math.round(baseRgb.b * (1 - blendAmount) + avgGlitch.b * blendAmount);
+  
+  // Apply saturation and brightness adjustments
+  let resultRgb = { r: blendedR, g: blendedG, b: blendedB };
+  
+  // Convert to HSL for easier manipulation
+  const hsl = rgbToHsl(resultRgb.r, resultRgb.g, resultRgb.b);
+  
+  // Adjust saturation based on difficulty
+  hsl.s = Math.min(100, Math.max(0, hsl.s + saturationBoost));
+  
+  // Adjust brightness with variation
+  const brightnessDirection = variationIndex % 2 === 0 ? 1 : -1;
+  hsl.l = Math.min(100, Math.max(0, hsl.l + (brightnessVariation * brightnessDirection)));
+  
+  // Convert back to RGB
+  const adjustedRgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+  resultRgb = { r: adjustedRgb.r, g: adjustedRgb.g, b: adjustedRgb.b };
+  
+  // Ensure minimum contrast
+  const contrast = getContrastRatio(avgGlitch, resultRgb);
+  
+  if (contrast < minContrast) {
+    // Adjust brightness to meet contrast requirement
+    const glitchLuminance = getRelativeLuminance(avgGlitch.r, avgGlitch.g, avgGlitch.b);
+    const resultLuminance = getRelativeLuminance(resultRgb.r, resultRgb.g, resultRgb.b);
+    
+    const targetLuminance = glitchLuminance < 0.5 
+      ? Math.min(0.9, glitchLuminance + (minContrast / 10)) // Brighter
+      : Math.max(0.1, glitchLuminance - (minContrast / 10)); // Darker
+    
+    // Adjust RGB to achieve target luminance
+    const currentLum = resultLuminance;
+    const adjustment = targetLuminance > currentLum ? 1.2 : 0.8;
+    
+    resultRgb = {
+      r: Math.max(0, Math.min(255, Math.round(resultRgb.r * adjustment))),
+      g: Math.max(0, Math.min(255, Math.round(resultRgb.g * adjustment))),
+      b: Math.max(0, Math.min(255, Math.round(resultRgb.b * adjustment))),
+    };
+  }
+  
+  // For easy and average, add complementary color shifts for more variety
+  if (difficulty === 'easy' || difficulty === 'average') {
+    // Shift hue slightly for more vibrant variations
+    const hueShift = (variationIndex * 15) % 360; // 0-75 degree shifts
+    const shiftedHsl = rgbToHsl(resultRgb.r, resultRgb.g, resultRgb.b);
+    shiftedHsl.h = (shiftedHsl.h + hueShift) % 360;
+    const shiftedRgb = hslToRgb(shiftedHsl.h, shiftedHsl.s, shiftedHsl.l);
+    resultRgb = { r: shiftedRgb.r, g: shiftedRgb.g, b: shiftedRgb.b };
+  }
+  
+  return rgbToHex(resultRgb.r, resultRgb.g, resultRgb.b);
+}
+
+/**
+ * Generate a set of adaptive colors for dynamic word coloring
+ * Creates 6 variations that cycle through during gameplay
+ * @param baseColor - Base hidden word color from palette
+ * @param glitchColors - Array of glitch colors to blend with
+ * @param difficulty - Difficulty level ('easy', 'average', 'hard')
+ * @returns Array of 6 adaptive color variations
+ */
+export function generateAdaptiveColorSet(
+  baseColor: string,
+  glitchColors: string[],
+  difficulty: 'easy' | 'average' | 'hard' = 'hard'
+): string[] {
+  const colors: string[] = [];
+  
+  // Always include the base color as first option
+  colors.push(baseColor);
+  
+  // Generate 5 additional variations with difficulty-specific strategies
+  for (let i = 1; i <= 5; i++) {
+    colors.push(generateAdaptiveColor(baseColor, glitchColors, i, difficulty));
+  }
+  
+  return colors;
+}
+
+/**
+ * Interpolate between two colors smoothly
+ * @param color1 - Start color (hex)
+ * @param color2 - End color (hex)
+ * @param factor - Interpolation factor (0.0 to 1.0)
+ */
+export function interpolateColor(color1: string, color2: string, factor: number): string {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  
+  if (!rgb1 || !rgb2) return color1;
+  
+  const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
+  const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
+  const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
+  
+  return rgbToHex(r, g, b);
 }
 
 

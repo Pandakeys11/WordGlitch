@@ -5,12 +5,28 @@ import { Level, GameWord } from '@/types/game';
 import { CHAR_WIDTH, CHAR_HEIGHT, FONT_SIZE } from '@/lib/constants';
 import { ColorPalette, getPalette, DEFAULT_PALETTE_ID } from '@/lib/colorPalettes';
 import { getTextSizingForDifficulty } from '@/lib/game/difficulty';
+import { generateAdaptiveColorSet, interpolateColor } from '@/lib/colorUtils';
 
 // Get word color from palette (will be set dynamically)
 let currentPalette: ColorPalette = getPalette(DEFAULT_PALETTE_ID);
 
 // Get uniform color for all hidden words from current palette
-const getWordColor = (): string => {
+// For hard palettes, returns dynamic adaptive color
+const getWordColor = (adaptiveColors?: string[], currentIndex?: number, transitionProgress?: number): string => {
+  if (adaptiveColors && adaptiveColors.length > 0 && currentIndex !== undefined) {
+    // For hard palettes with adaptive colors
+    const currentColor = adaptiveColors[currentIndex];
+    const nextIndex = (currentIndex + 1) % adaptiveColors.length;
+    const nextColor = adaptiveColors[nextIndex];
+    
+    // Smooth transition between colors if transition progress is provided
+    if (transitionProgress !== undefined && transitionProgress > 0 && transitionProgress < 1) {
+      return interpolateColor(currentColor, nextColor, transitionProgress);
+    }
+    
+    return currentColor;
+  }
+  
   return currentPalette.hiddenWordColor;
 };
 
@@ -144,6 +160,8 @@ interface LetterGlitchProps {
   glitchColors?: string[];
   palette?: ColorPalette; // Color palette for glitch and hidden words
   menuDisplayWords?: string[]; // Words to randomly display in menu screen (e.g., ["WORD GLITCH", "by PGT"])
+  hangmanRevealedWords?: string[]; // Words fully revealed in hangman mini-game
+  isHangmanActive?: boolean; // Whether hangman mini-game is active
 }
 
 interface Letter {
@@ -172,7 +190,7 @@ export interface LetterGlitchHandle {
 }
 
 const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
-  ({ level, words, onWordFound, isPaused, timeRemaining, glitchColors, palette, menuDisplayWords }, ref) => {
+  ({ level, words, onWordFound, isPaused, timeRemaining, glitchColors, palette, menuDisplayWords, hangmanRevealedWords = [], isHangmanActive = false }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
     const lettersRef = useRef<Letter[]>([]);
@@ -190,6 +208,65 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
     const activePalette = palette || getPalette(DEFAULT_PALETTE_ID);
     const defaultColors = glitchColors || activePalette.glitchColors;
     const originalColorsRef = useRef<string[]>(defaultColors);
+    
+    // Dynamic color system for all difficulty palettes
+    const adaptiveColorsRef = useRef<string[]>([]);
+    const currentColorIndexRef = useRef<number>(0);
+    const colorChangeStartTimeRef = useRef<number>(Date.now());
+    const colorChangeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Initialize adaptive colors for all palettes
+    useEffect(() => {
+      // Generate adaptive color set based on base color, glitch colors, and difficulty
+      adaptiveColorsRef.current = generateAdaptiveColorSet(
+        activePalette.hiddenWordColor,
+        defaultColors,
+        activePalette.difficulty
+      );
+      currentColorIndexRef.current = 0;
+      colorChangeStartTimeRef.current = Date.now();
+      
+      // Difficulty-specific color change intervals
+      // Easy: faster changes (2-3s) for more dynamic feel
+      // Average: moderate (2.5-3.5s) for balanced experience
+      // Hard: slower (3-5s) for subtle changes
+      const getChangeInterval = () => {
+        switch (activePalette.difficulty) {
+          case 'easy':
+            return 2000 + Math.random() * 1000; // 2-3 seconds
+          case 'average':
+            return 2500 + Math.random() * 1000; // 2.5-3.5 seconds
+          case 'hard':
+          default:
+            return 3000 + Math.random() * 2000; // 3-5 seconds
+        }
+      };
+      
+      // Change color at intervals
+      const changeColor = () => {
+        if (isPaused) return;
+        
+        // Pick next color (can be same or different for variety)
+        const nextIndex = Math.floor(Math.random() * adaptiveColorsRef.current.length);
+        currentColorIndexRef.current = nextIndex;
+        colorChangeStartTimeRef.current = Date.now();
+        
+        // Schedule next change
+        const nextChangeDelay = getChangeInterval();
+        colorChangeIntervalRef.current = setTimeout(changeColor, nextChangeDelay);
+      };
+      
+      // Start first color change after initial delay
+      const initialDelay = getChangeInterval();
+      colorChangeIntervalRef.current = setTimeout(changeColor, initialDelay);
+      
+      return () => {
+        if (colorChangeIntervalRef.current) {
+          clearTimeout(colorChangeIntervalRef.current);
+          colorChangeIntervalRef.current = null;
+        }
+      };
+    }, [activePalette.difficulty, activePalette.hiddenWordColor, defaultColors, isPaused]);
 
     // Store sizing in refs so they can be accessed in closures
     // Always get fresh sizing based on palette difficulty and level (updates every 10 levels on boss levels)
@@ -449,8 +526,39 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             }
           }
         } else if (word.isVisible) {
+          // If hangman is active, only show words that are fully revealed
+          if (isHangmanActive && !hangmanRevealedWords.includes(word.word)) {
+            // Hide word if not fully revealed in hangman
+            return;
+          }
+          
           // Visible words - use vibrant color that blends with glitch but stands out when visible
-          const baseColor = getWordColor();
+          // Use adaptive dynamic colors for all palettes with per-word variation
+          let baseColor: string;
+          if (adaptiveColorsRef.current.length > 0) {
+            // Assign different color variations to different words for variety
+            // Use word index to create consistent but varied colors
+            const wordIndex = words.indexOf(word);
+            const colorVariation = wordIndex % adaptiveColorsRef.current.length;
+            const selectedColorIndex = (currentColorIndexRef.current + colorVariation) % adaptiveColorsRef.current.length;
+            
+            // Calculate transition progress for smooth color changes
+            const timeSinceChange = Date.now() - colorChangeStartTimeRef.current;
+            const transitionDuration = 1000; // 1 second transition
+            const transitionProgress = Math.min(1, timeSinceChange / transitionDuration);
+            
+            // Get current and next color for this word's variation
+            const currentColor = adaptiveColorsRef.current[selectedColorIndex];
+            const nextVariationIndex = (selectedColorIndex + 1) % adaptiveColorsRef.current.length;
+            const nextColor = adaptiveColorsRef.current[nextVariationIndex];
+            
+            // Smooth transition between colors
+            baseColor = transitionProgress > 0 && transitionProgress < 1
+              ? interpolateColor(currentColor, nextColor, transitionProgress)
+              : currentColor;
+          } else {
+            baseColor = getWordColor();
+          }
           let vibrantColor = getVibrantColor(level.level, baseColor);
           
           // Fake words use a slightly different color (more red/orange tint) to subtly hint they're fake
@@ -748,7 +856,37 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       words.forEach(word => {
         if (word.found || !word.isVisible) return;
         
-        const baseColor = getWordColor();
+        // If hangman is active, only show words that are fully revealed
+        if (isHangmanActive && !hangmanRevealedWords.includes(word.word)) {
+          // Hide word if not fully revealed in hangman
+          return;
+        }
+        
+        // Use adaptive dynamic colors for all palettes (same logic as updateWordsInLetters)
+        let baseColor: string;
+        if (adaptiveColorsRef.current.length > 0) {
+          // Assign different color variations to different words for variety
+          const wordIndex = words.indexOf(word);
+          const colorVariation = wordIndex % adaptiveColorsRef.current.length;
+          const selectedColorIndex = (currentColorIndexRef.current + colorVariation) % adaptiveColorsRef.current.length;
+          
+          // Calculate transition progress for smooth color changes
+          const timeSinceChange = Date.now() - colorChangeStartTimeRef.current;
+          const transitionDuration = 1000; // 1 second transition
+          const transitionProgress = Math.min(1, timeSinceChange / transitionDuration);
+          
+          // Get current and next color for this word's variation
+          const currentColor = adaptiveColorsRef.current[selectedColorIndex];
+          const nextVariationIndex = (selectedColorIndex + 1) % adaptiveColorsRef.current.length;
+          const nextColor = adaptiveColorsRef.current[nextVariationIndex];
+          
+          // Smooth transition between colors
+          baseColor = transitionProgress > 0 && transitionProgress < 1
+            ? interpolateColor(currentColor, nextColor, transitionProgress)
+            : currentColor;
+        } else {
+          baseColor = getWordColor();
+        }
         const vibrantColor = getVibrantColor(level.level, baseColor);
         const glowProps = getGlowProperties(level.level);
         
@@ -1107,26 +1245,41 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       // Exclude UI areas from click detection (in logical pixel space)
       // Use responsive exclusion zones based on screen width
       const width = window.innerWidth || 800;
-      let topExclusion = 120; // Default desktop
-      let bottomExclusion = 200; // Default desktop
+      let topExclusion = 120; // Default desktop (for GameHUD)
+      let bottomExclusion = 200; // Default desktop (for WordList)
+      
+      // Increase bottom exclusion when hangman is active (it takes more space)
+      if (isHangmanActive) {
+        bottomExclusion = 280; // More space for hangman + word list
+      }
       
       if (width <= 360) {
         // Small mobile devices
         topExclusion = 80;
-        bottomExclusion = 120;
+        bottomExclusion = isHangmanActive ? 200 : 120;
       } else if (width <= 480) {
         // Mobile devices
         topExclusion = 90;
-        bottomExclusion = 140;
+        bottomExclusion = isHangmanActive ? 240 : 140;
       } else if (width <= 768) {
         // Tablet devices
         topExclusion = 100;
-        bottomExclusion = 180;
+        bottomExclusion = isHangmanActive ? 260 : 180;
       }
       
+      // Add safe area insets
+      const safeAreaTop = typeof window !== 'undefined' 
+        ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '0', 10) || 0
+        : 0;
+      const safeAreaBottom = typeof window !== 'undefined'
+        ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '0', 10) || 0
+        : 0;
+      
+      const finalTopExclusion = topExclusion + safeAreaTop;
+      const finalBottomExclusion = bottomExclusion + safeAreaBottom;
       const canvasHeight = rect.height;
       
-      if (clickY < topExclusion || clickY > canvasHeight - bottomExclusion) {
+      if (clickY < finalTopExclusion || clickY > canvasHeight - finalBottomExclusion) {
         return; // Click is in UI area, ignore
       }
 
@@ -1144,6 +1297,11 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
       
       for (const word of words) {
         if (!word.isVisible || word.found) continue; // Only check visible, unfound words
+        
+        // If hangman is active, only allow clicks on words that are fully revealed
+        if (isHangmanActive && !hangmanRevealedWords.includes(word.word)) {
+          continue; // Skip words not revealed in hangman
+        }
         
         const textStartX = word.startCol * charWidth - paddingX;
         const textEndX = (word.startCol + word.word.length) * charWidth + paddingX;

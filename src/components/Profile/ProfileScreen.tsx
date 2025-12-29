@@ -12,8 +12,10 @@ import {
   switchProfile,
   getCurrentProfileId,
   deleteProfile,
-  resetProfile
+  resetProfile,
+  autoLoginByWallet
 } from '@/lib/storage/gameStorage';
+import { getWalletAddress, isWalletAvailable } from '@/lib/wallet/walletUtils';
 import { syncCurrencyWithTotalScore, getCurrencyBalance } from '@/lib/currency';
 import { GameStats } from '@/types/profile';
 import { ProfileMetadata } from '@/lib/storage/types';
@@ -55,7 +57,27 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   useEffect(() => {
     refreshData();
+    // Check for wallet connection and auto-login
+    checkWalletAndAutoLogin();
   }, []);
+
+  // Check wallet connection and auto-login if profile exists
+  const checkWalletAndAutoLogin = async () => {
+    if (!isWalletAvailable()) return;
+    
+    try {
+      const walletAddress = await getWalletAddress();
+      if (walletAddress) {
+        const loggedIn = autoLoginByWallet(walletAddress);
+        if (loggedIn) {
+          refreshData();
+        }
+      }
+    } catch (error) {
+      // Silently fail - wallet might not be connected
+      console.debug('Wallet check failed:', error);
+    }
+  };
 
   // Update currency when stats change
   useEffect(() => {
@@ -96,7 +118,18 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     setError(null);
 
     try {
-      const profileId = createProfile(newProfileName.trim());
+      // Check if wallet is connected and link it to the new profile
+      let walletAddress: string | undefined;
+      if (isWalletAvailable()) {
+        try {
+          walletAddress = await getWalletAddress() || undefined;
+        } catch (error) {
+          // Wallet not connected or error - continue without wallet
+          console.debug('Wallet not connected, creating profile without wallet:', error);
+        }
+      }
+
+      const profileId = createProfile(newProfileName.trim(), walletAddress);
       setNewProfileName('');
       refreshData();
     } catch (err: any) {
@@ -227,6 +260,11 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
                           <h3 className={styles.profileName}>{profile.name}</h3>
                           <p className={styles.profileMeta}>
                             Last played: {new Date(profile.lastPlayed).toLocaleDateString()}
+                            {profile.walletAddress && (
+                              <span className={styles.walletBadge}>
+                                🔗 Wallet: {profile.walletAddress.slice(0, 6)}...{profile.walletAddress.slice(-4)}
+                              </span>
+                            )}
                           </p>
                         </div>
                         <div className={styles.profileActions}>

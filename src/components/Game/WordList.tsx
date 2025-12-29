@@ -10,9 +10,11 @@ interface WordListProps {
   words: GameWord[];
   palette?: ColorPalette;
   isPaused?: boolean;
+  showHangman?: boolean;
+  hangmanRevealedWords?: string[];
 }
 
-export default function WordList({ words, palette, isPaused = false }: WordListProps) {
+export default function WordList({ words, palette, isPaused = false, showHangman = false, hangmanRevealedWords = [] }: WordListProps) {
   // Filter out fake words from the word list - they shouldn't be shown to players
   const activeWords = words.filter(w => !w.found && !w.isFake);
   const foundWords = words.filter(w => w.found && !w.isFake);
@@ -59,21 +61,27 @@ export default function WordList({ words, palette, isPaused = false }: WordListP
   };
 
   return (
-    <div className={styles.wordList}>
+    <div className={`${styles.wordList} ${showHangman ? styles.withHangman : ''}`}>
       <div className={styles.wordsContent}>
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Find These Words</h3>
           <div className={styles.words}>
-            {activeWords.map((word) => (
-              <div 
-                key={word.word} 
-                className={styles.word}
-                style={getWordBoxStyle(false)}
-              >
-                <span className={styles.wordText}>{word.word}</span>
-                <span className={styles.wordPoints}>{word.points} pts</span>
-              </div>
-            ))}
+            {activeWords.map((word) => {
+              // Words are revealed if:
+              // 1. Hangman is not active (showHangman prop is false), OR
+              // 2. Word is in hangmanRevealedWords list (gradually revealed as player guesses letters)
+              const isRevealed = !showHangman || hangmanRevealedWords.includes(word.word);
+              return (
+                <div 
+                  key={word.word} 
+                  className={`${styles.word} ${!isRevealed ? styles.blurred : ''}`}
+                  style={getWordBoxStyle(false)}
+                >
+                  <span className={styles.wordText}>{word.word}</span>
+                  <span className={styles.wordPoints}>{word.points} pts</span>
+                </div>
+              );
+            })}
           </div>
         </div>
         {foundWords.length > 0 && (

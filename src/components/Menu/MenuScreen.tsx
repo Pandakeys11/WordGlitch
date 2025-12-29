@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import MenuButton from './MenuButton';
+import MenuProfileCard from './MenuProfileCard';
 import LetterGlitch, { LetterGlitchHandle } from '../Game/LetterGlitch';
 import { getCurrentLevel, getUnlockedLevels } from '@/lib/game/levelSystem';
 import { loadProfile, loadSettings, saveSettings } from '@/lib/storage/gameStorage';
@@ -203,6 +204,14 @@ export default function MenuScreen({
             </div>
           </div>
           <p className={styles.subtitle}>Find words in the chaos</p>
+        </div>
+
+        {/* Profile Card - Only shows if logged in */}
+        <div className={styles.profileSection}>
+          <MenuProfileCard 
+            palette={currentPalette} 
+            onClick={onProfile}
+          />
         </div>
 
         <div className={styles.stats}>
