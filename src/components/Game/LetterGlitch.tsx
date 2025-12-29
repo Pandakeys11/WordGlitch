@@ -374,7 +374,9 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
         return () => {
           window.removeEventListener('resize', debouncedResize);
           window.removeEventListener('orientationchange', handleOrientationChange);
-          window.visualViewport.removeEventListener('resize', handleVisualViewportResize);
+          if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', handleVisualViewportResize);
+          }
           if (resizeTimeout) clearTimeout(resizeTimeout);
         };
       }

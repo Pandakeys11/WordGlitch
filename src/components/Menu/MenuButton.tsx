@@ -36,15 +36,44 @@ export default function MenuButton({
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
+  // Calculate lighter and darker shades for 3D border effect
+  const lightenColor = (hex: string, percent: number) => {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, ((num >> 16) & 0xff) + Math.round(255 * percent));
+    const g = Math.min(255, ((num >> 8) & 0xff) + Math.round(255 * percent));
+    const b = Math.min(255, (num & 0xff) + Math.round(255 * percent));
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+  };
+
+  const darkenColor = (hex: string, percent: number) => {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.max(0, ((num >> 16) & 0xff) - Math.round(255 * percent));
+    const g = Math.max(0, ((num >> 8) & 0xff) - Math.round(255 * percent));
+    const b = Math.max(0, (num & 0xff) - Math.round(255 * percent));
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+  };
+
   const buttonStyle: React.CSSProperties = 
     variant === 'primary'
       ? {
-          background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-          boxShadow: `0 4px 20px ${hexToRgba(primaryColor, 0.4)}`,
+          background: `linear-gradient(135deg, ${primaryColor} 0%, ${darkenColor(primaryColor, 0.15)} 50%, ${secondaryColor} 100%)`,
+          borderColor: `${lightenColor(primaryColor, 0.2)} ${darkenColor(primaryColor, 0.2)} ${darkenColor(primaryColor, 0.4)} ${darkenColor(primaryColor, 0.2)}`,
+          boxShadow: `
+            0 0 20px ${hexToRgba(primaryColor, 0.5)},
+            0 4px 12px ${hexToRgba('#000000', 0.4)},
+            inset 0 1px 0 ${hexToRgba('#ffffff', 0.3)},
+            inset 0 -1px 0 ${hexToRgba('#000000', 0.2)}
+          `,
         }
       : variant === 'secondary'
       ? {
-          borderColor: hexToRgba(primaryColor, 0.5),
+          borderColor: `${hexToRgba(primaryColor, 0.4)} ${hexToRgba(primaryColor, 0.2)} ${hexToRgba('#000000', 0.5)} ${hexToRgba(primaryColor, 0.2)}`,
+          boxShadow: `
+            0 0 15px ${hexToRgba(primaryColor, 0.2)},
+            0 4px 12px ${hexToRgba('#000000', 0.4)},
+            inset 0 1px 0 ${hexToRgba('#ffffff', 0.2)},
+            inset 0 -1px 0 ${hexToRgba('#000000', 0.3)}
+          `,
         }
       : {};
 

@@ -5,73 +5,157 @@
   gap: 0.75rem;
   padding: 1.25rem 2rem;
   border: none;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   cursor: pointer;
-  transition: all 0.3s;
-  font-family: inherit;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Courier New', monospace;
   min-width: 200px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  /* 3D beveled border effect */
+  border-style: solid;
+  border-width: 3px;
+  box-sizing: border-box;
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
+/* Shine/glow overlay effect */
 .button::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.2s;
+  border-radius: 5px;
+  pointer-events: none;
 }
 
 .button:hover::before {
   opacity: 1;
 }
 
+/* Active/pressed state */
 .button:active {
-  transform: scale(0.98);
+  transform: translateY(2px) scale(0.98);
+}
+
+.button:active::before {
+  opacity: 0;
 }
 
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  filter: grayscale(0.5);
 }
 
+/* Primary button - 3D raised effect with glow */
 .primary {
-  background: linear-gradient(135deg, #61dca3 0%, #61b3dc 100%);
+  background: linear-gradient(135deg, #61dca3 0%, #4ba080 50%, #61b3dc 100%);
   color: #000;
-  box-shadow: 0 4px 20px rgba(97, 220, 163, 0.4);
+  /* 3D beveled border - light top/left, dark bottom/right */
+  border-color: #7ef0c0 #4ba080 #2b4539 #4ba080;
+  box-shadow: 
+    0 0 20px rgba(97, 220, 163, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(97, 220, 163, 0.6);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 0 30px rgba(97, 220, 163, 0.7),
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  border-color: #8ef5d0 #5bb090 #2b4539 #5bb090;
 }
 
+.primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 
+    0 0 15px rgba(97, 220, 163, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  border-color: #2b4539 #4ba080 #7ef0c0 #4ba080;
+}
+
+/* Secondary button - outlined with 3D effect */
 .secondary {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.4);
   color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.5) rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
+  box-shadow: 
+    0 0 15px rgba(255, 255, 255, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
 .secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.5) rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.3),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
+.secondary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  border-color: rgba(0, 0, 0, 0.5) rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.2);
+}
+
+/* Tertiary button - minimal with subtle 3D */
 .tertiary {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.8);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.15) rgba(0, 0, 0, 0.4) rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .tertiary:hover:not(:disabled) {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.5) rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.4) rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.tertiary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  border-color: rgba(0, 0, 0, 0.4) rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.15);
 }
 
 .icon {
@@ -85,16 +169,53 @@
   font-weight: 700;
 }
 
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  transition: transform 0.15s;
+}
+
+.button:hover:not(:disabled) .icon {
+  transform: scale(1.1);
+}
+
+.button:active:not(:disabled) .icon {
+  transform: scale(0.95);
+}
+
+.label {
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
 @media (max-width: 768px) {
   .button {
     padding: 1rem 1.5rem;
     font-size: 1rem;
     min-width: 180px;
-    min-height: 44px; /* Touch target size */
+    min-height: 48px; /* Touch target size */
+    border-width: 2px;
+    letter-spacing: 0.1em;
   }
 
-  .icon {
-    /* Icon size handled by SVG size prop */
+  .primary {
+    box-shadow: 
+      0 0 15px rgba(97, 220, 163, 0.4),
+      0 3px 10px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .primary:hover:not(:disabled) {
+    box-shadow: 
+      0 0 20px rgba(97, 220, 163, 0.6),
+      0 4px 14px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -103,12 +224,17 @@
     padding: 0.875rem 1.25rem;
     font-size: 0.95rem;
     min-width: 160px;
-    min-height: 44px; /* Touch target size */
+    min-height: 48px; /* Touch target size */
     letter-spacing: 0.08em;
+    border-width: 2px;
   }
 
-  .icon {
-    /* Icon size handled by SVG size prop */
+  .primary {
+    box-shadow: 
+      0 0 12px rgba(97, 220, 163, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -118,11 +244,8 @@
     padding: 0.75rem 1.25rem;
     font-size: 0.9rem;
     min-width: 150px;
-    min-height: 40px;
-  }
-
-  .icon {
-    /* Icon size handled by SVG size prop */
+    min-height: 44px;
+    border-width: 2px;
   }
 }
 
