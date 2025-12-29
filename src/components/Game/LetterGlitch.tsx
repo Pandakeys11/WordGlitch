@@ -10,6 +10,32 @@ import { generateAdaptiveColorSet, interpolateColor } from '@/lib/colorUtils';
 // Get word color from palette (will be set dynamically)
 let currentPalette: ColorPalette = getPalette(DEFAULT_PALETTE_ID);
 
+// Helper function to convert hex to RGB
+const hexToRgbHelper = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
+};
+
+// Helper function to interpolate between two hex colors
+const interpolateHexColors = (startHex: string, endHex: string, factor: number): string => {
+  const startRgb = hexToRgbHelper(startHex);
+  const endRgb = hexToRgbHelper(endHex);
+  
+  if (!startRgb || !endRgb) {
+    return startHex; // Fallback to start color if conversion fails
+  }
+  
+  return `rgb(${Math.round(startRgb.r + (endRgb.r - startRgb.r) * factor)}, ${Math.round(
+    startRgb.g + (endRgb.g - startRgb.g) * factor
+  )}, ${Math.round(startRgb.b + (endRgb.b - startRgb.b) * factor)})`;
+};
+
 // Get uniform color for all hidden words from current palette
 // For hard palettes, returns dynamic adaptive color
 const getWordColor = (adaptiveColors?: string[], currentIndex?: number, transitionProgress?: number): string => {
@@ -21,7 +47,7 @@ const getWordColor = (adaptiveColors?: string[], currentIndex?: number, transiti
     
     // Smooth transition between colors if transition progress is provided
     if (transitionProgress !== undefined && transitionProgress > 0 && transitionProgress < 1) {
-      return interpolateColor(currentColor, nextColor, transitionProgress);
+      return interpolateHexColors(currentColor, nextColor, transitionProgress);
     }
     
     return currentColor;
@@ -554,7 +580,7 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
             
             // Smooth transition between colors
             baseColor = transitionProgress > 0 && transitionProgress < 1
-              ? interpolateColor(currentColor, nextColor, transitionProgress)
+              ? interpolateHexColors(currentColor, nextColor, transitionProgress)
               : currentColor;
           } else {
             baseColor = getWordColor();
@@ -882,7 +908,7 @@ const LetterGlitch = forwardRef<LetterGlitchHandle, LetterGlitchProps>(
           
           // Smooth transition between colors
           baseColor = transitionProgress > 0 && transitionProgress < 1
-            ? interpolateColor(currentColor, nextColor, transitionProgress)
+            ? interpolateHexColors(currentColor, nextColor, transitionProgress)
             : currentColor;
         } else {
           baseColor = getWordColor();
