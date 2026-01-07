@@ -1,12 +1,11 @@
 import { Level, Difficulty } from '@/types/game';
 import { DIFFICULTY_SETTINGS, FONT_SIZE, CHAR_WIDTH, CHAR_HEIGHT } from '@/lib/constants';
 import { PaletteDifficulty } from '@/lib/colorPalettes';
+import { getGameDifficultyForLevel } from './levelProgression';
 
 export function getDifficultyForLevel(level: number): Difficulty {
-  if (level <= 5) return 'easy';
-  if (level <= 10) return 'medium';
-  if (level <= 20) return 'hard';
-  return 'extreme';
+  // Use the new level progression system to determine difficulty
+  return getGameDifficultyForLevel(level);
 }
 
 /**
@@ -72,7 +71,7 @@ export function getTextSizingForDifficulty(
     // Determine which boss tier this level belongs to
     // Levels 10-19: tier 1 (90%), Levels 20-29: tier 2 (80%), etc.
     const bossTier = Math.floor(level / 10);
-    
+
     // Each boss tier reduces size by 10% (starts at 90% for tier 1, down to 50% minimum)
     // Tier 1 (level 10): 90%
     // Tier 2 (level 20): 80%
@@ -98,7 +97,7 @@ export function initializeLevel(level: number): Level {
 
   // Progressive scaling
   const levelMultiplier = 1 + (level - 1) * 0.1;
-  
+
   // Creative level twists - vary word count based on level patterns
   let wordCount: number;
   if (level <= 3) {
@@ -121,10 +120,10 @@ export function initializeLevel(level: number): Level {
     const baseCount = 8 + Math.floor((level - 26) / 5);
     wordCount = Math.min(baseCount, 10);
   }
-  
+
   // Ensure word count is reasonable
   wordCount = Math.max(3, Math.min(wordCount, 10));
-  
+
   return {
     level,
     difficulty,

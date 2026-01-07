@@ -267,6 +267,132 @@ export const COLOR_PALETTES: ColorPalette[] = [
       background: 'rgba(0, 0, 0, 0.5)',
     },
   },
+  {
+    id: 'sakura',
+    name: 'Sakura Blossom',
+    description: 'Soft pink cherry blossoms',
+    difficulty: 'easy',
+    glitchColors: ['#2d1a1a', '#cc5580', '#cc7799', '#cc99aa', '#ccaabb'],
+    hiddenWordColor: '#00ffcc', // Bright cyan - excellent contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#00ffcc'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#00ffcc', ['#2d1a1a', '#cc5580', '#cc7799', '#cc99aa', '#ccaabb']),
+    uiColors: {
+      primary: '#ff69b4',
+      secondary: '#ffb6c1',
+      accent: '#ff1493',
+      text: '#ffffff',
+      background: 'rgba(45, 26, 26, 0.3)',
+    },
+  },
+  {
+    id: 'arctic',
+    name: 'Arctic Frost',
+    description: 'Icy blue and white tones',
+    difficulty: 'easy',
+    glitchColors: ['#0a1a2e', '#1a3a5c', '#4d7aa0', '#80b3cc', '#b3d9e6'],
+    hiddenWordColor: '#ffaa00', // Warm orange - contrasts with cold blues
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ffaa00'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ffaa00', ['#0a1a2e', '#1a3a5c', '#4d7aa0', '#80b3cc', '#b3d9e6']),
+    uiColors: {
+      primary: '#5dade2',
+      secondary: '#85c1e9',
+      accent: '#2874a6',
+      text: '#ffffff',
+      background: 'rgba(10, 26, 46, 0.3)',
+    },
+  },
+  {
+    id: 'desert',
+    name: 'Desert Sands',
+    description: 'Warm sandy and terracotta',
+    difficulty: 'easy',
+    glitchColors: ['#2d1a0a', '#8b6914', '#cc9933', '#ccaa66', '#d4af37'],
+    hiddenWordColor: '#00ccff', // Bright blue - oasis contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#00ccff'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#00ccff', ['#2d1a0a', '#8b6914', '#cc9933', '#ccaa66', '#d4af37']),
+    uiColors: {
+      primary: '#daa520',
+      secondary: '#f4a460',
+      accent: '#cd853f',
+      text: '#ffffff',
+      background: 'rgba(45, 26, 10, 0.3)',
+    },
+  },
+  {
+    id: 'jungle',
+    name: 'Jungle Canopy',
+    description: 'Deep tropical greens',
+    difficulty: 'easy',
+    glitchColors: ['#0a1a0a', '#1a3d1a', '#2d5c2d', '#4d8c4d', '#6ba86b'],
+    hiddenWordColor: '#ff3399', // Hot pink - tropical flower contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ff3399'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ff3399', ['#0a1a0a', '#1a3d1a', '#2d5c2d', '#4d8c4d', '#6ba86b']),
+    uiColors: {
+      primary: '#228b22',
+      secondary: '#32cd32',
+      accent: '#006400',
+      text: '#ffffff',
+      background: 'rgba(10, 26, 10, 0.3)',
+    },
+  },
+  {
+    id: 'lava',
+    name: 'Molten Lava',
+    description: 'Intense red and orange magma',
+    difficulty: 'easy',
+    glitchColors: ['#1a0000', '#660000', '#cc1100', '#ff4400', '#ff6600'],
+    hiddenWordColor: '#00ffff', // Cyan - water vs fire
+    hiddenWordEffects: createHiddenWordEffects('easy', '#00ffff'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#00ffff', ['#1a0000', '#660000', '#cc1100', '#ff4400', '#ff6600']),
+    uiColors: {
+      primary: '#ff4500',
+      secondary: '#ff6347',
+      accent: '#dc143c',
+      text: '#ffffff',
+      background: 'rgba(26, 0, 0, 0.3)',
+    },
+  },
+  {
+    id: 'midnightsky',
+    name: 'Midnight Sky',
+    description: 'Deep night with stars',
+    difficulty: 'easy',
+    glitchColors: ['#000033', '#1a1a4d', '#333366', '#4d4d99', '#6666cc'],
+    hiddenWordColor: '#ffff00', // Bright yellow - star contrast
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ffff00'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ffff00', ['#000033', '#1a1a4d', '#333366', '#4d4d99', '#6666cc']),
+    uiColors: {
+      primary: '#4169e1',
+      secondary: '#6495ed',
+      accent: '#191970',
+      text: '#ffffff',
+      background: 'rgba(0, 0, 51, 0.3)',
+    },
+  },
+  {
+    id: 'aquamarine',
+    name: 'Aquamarine Dream',
+    description: 'Turquoise and sea green',
+    difficulty: 'easy',
+    glitchColors: ['#0a2d2d', '#1a5c5c', '#2d8c8c', '#40b3b3', '#66cccc'],
+    hiddenWordColor: '#ff6600', // Orange - complementary to teal
+    hiddenWordEffects: createHiddenWordEffects('easy', '#ff6600'),
+    textSizeMultiplier: 1.0,
+    contrastRatio: getContrastAgainstGlitchColors('#ff6600', ['#0a2d2d', '#1a5c5c', '#2d8c8c', '#40b3b3', '#66cccc']),
+    uiColors: {
+      primary: '#48d1cc',
+      secondary: '#7fffd4',
+      accent: '#20b2aa',
+      text: '#ffffff',
+      background: 'rgba(10, 45, 45, 0.3)',
+    },
+  },
 
   // ==================== AVERAGE (Medium Contrast) ====================
   // Hidden words use related colors that blend more but are still distinguishable
@@ -414,6 +540,78 @@ export const COLOR_PALETTES: ColorPalette[] = [
       background: 'rgba(0, 0, 0, 0.5)',
     },
   },
+  {
+    id: 'retroarcade',
+    name: 'Retro Arcade',
+    description: 'Classic arcade cabinet colors',
+    difficulty: 'average',
+    glitchColors: ['#1a0a2e', '#cc3300', '#0066cc', '#ffcc00', '#00cc66'],
+    hiddenWordColor: '#ff66ff', // Bright magenta - arcade aesthetic
+    hiddenWordEffects: createHiddenWordEffects('average', '#ff66ff'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ff66ff', ['#1a0a2e', '#cc3300', '#0066cc', '#ffcc00', '#00cc66']),
+    uiColors: {
+      primary: '#ff3366',
+      secondary: '#33ccff',
+      accent: '#ffcc00',
+      text: '#ffffff',
+      background: 'rgba(26, 10, 46, 0.4)',
+    },
+  },
+  {
+    id: 'deepspace',
+    name: 'Deep Space',
+    description: 'Cosmic nebula and stars',
+    difficulty: 'average',
+    glitchColors: ['#0a0a1a', '#1a1a4d', '#4d1a66', '#1a4d66', '#4d4d99'],
+    hiddenWordColor: '#ffaa33', // Warm orange - star glow
+    hiddenWordEffects: createHiddenWordEffects('average', '#ffaa33'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ffaa33', ['#0a0a1a', '#1a1a4d', '#4d1a66', '#1a4d66', '#4d4d99']),
+    uiColors: {
+      primary: '#6666ff',
+      secondary: '#9966ff',
+      accent: '#ff6699',
+      text: '#ffffff',
+      background: 'rgba(10, 10, 26, 0.4)',
+    },
+  },
+  {
+    id: 'autumnleaves',
+    name: 'Autumn Leaves',
+    description: 'Fall foliage colors',
+    difficulty: 'average',
+    glitchColors: ['#2d1a0a', '#8b4513', '#cc6600', '#cc8800', '#996633'],
+    hiddenWordColor: '#33ccff', // Bright cyan - sky contrast
+    hiddenWordEffects: createHiddenWordEffects('average', '#33ccff'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#33ccff', ['#2d1a0a', '#8b4513', '#cc6600', '#cc8800', '#996633']),
+    uiColors: {
+      primary: '#ff8c00',
+      secondary: '#daa520',
+      accent: '#8b4513',
+      text: '#ffffff',
+      background: 'rgba(45, 26, 10, 0.4)',
+    },
+  },
+  {
+    id: 'electricstorm',
+    name: 'Electric Storm',
+    description: 'Lightning and thunder',
+    difficulty: 'average',
+    glitchColors: ['#0a0a1a', '#1a1a33', '#333366', '#4d4d99', '#6666cc'],
+    hiddenWordColor: '#ffff00', // Bright yellow - lightning
+    hiddenWordEffects: createHiddenWordEffects('average', '#ffff00'),
+    textSizeMultiplier: 0.85,
+    contrastRatio: getContrastAgainstGlitchColors('#ffff00', ['#0a0a1a', '#1a1a33', '#333366', '#4d4d99', '#6666cc']),
+    uiColors: {
+      primary: '#9999ff',
+      secondary: '#ccccff',
+      accent: '#ffff66',
+      text: '#ffffff',
+      background: 'rgba(10, 10, 26, 0.4)',
+    },
+  },
 
   // ==================== HARD (Low Contrast) ====================
   // Hidden words use colors very close to glitch colors but still visible with subtle effects
@@ -543,6 +741,60 @@ export const COLOR_PALETTES: ColorPalette[] = [
       background: 'rgba(61, 90, 61, 0.35)',
     },
   },
+  {
+    id: 'crimsondusk',
+    name: 'Crimson Dusk',
+    description: 'Deep red twilight',
+    difficulty: 'hard',
+    glitchColors: ['#2d0a0a', '#4d1a1a', '#661a1a', '#802020', '#993333'],
+    hiddenWordColor: '#cc6666', // Subtle lighter red
+    hiddenWordEffects: createHiddenWordEffects('hard', '#cc6666'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#cc6666', ['#2d0a0a', '#4d1a1a', '#661a1a', '#802020', '#993333']),
+    uiColors: {
+      primary: '#cc5555',
+      secondary: '#aa4444',
+      accent: '#ff6666',
+      text: '#ffffff',
+      background: 'rgba(45, 10, 10, 0.35)',
+    },
+  },
+  {
+    id: 'emeraldforest',
+    name: 'Emerald Forest',
+    description: 'Deep forest shadows',
+    difficulty: 'hard',
+    glitchColors: ['#0a2d0a', '#1a4d1a', '#2d662d', '#408040', '#4d994d'],
+    hiddenWordColor: '#66cc66', // Subtle lighter green
+    hiddenWordEffects: createHiddenWordEffects('hard', '#66cc66'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#66cc66', ['#0a2d0a', '#1a4d1a', '#2d662d', '#408040', '#4d994d']),
+    uiColors: {
+      primary: '#55aa55',
+      secondary: '#66bb66',
+      accent: '#77cc77',
+      text: '#ffffff',
+      background: 'rgba(10, 45, 10, 0.35)',
+    },
+  },
+  {
+    id: 'silvermoon',
+    name: 'Silver Moon',
+    description: 'Moonlit silver and blue',
+    difficulty: 'hard',
+    glitchColors: ['#1a1a2d', '#2d2d4d', '#404066', '#4d4d80', '#666699'],
+    hiddenWordColor: '#9999cc', // Subtle lighter blue-silver
+    hiddenWordEffects: createHiddenWordEffects('hard', '#9999cc'),
+    textSizeMultiplier: 0.70,
+    contrastRatio: getContrastAgainstGlitchColors('#9999cc', ['#1a1a2d', '#2d2d4d', '#404066', '#4d4d80', '#666699']),
+    uiColors: {
+      primary: '#8888bb',
+      secondary: '#9999cc',
+      accent: '#aaaadd',
+      text: '#ffffff',
+      background: 'rgba(26, 26, 45, 0.35)',
+    },
+  },
 ];
 
 export const DEFAULT_PALETTE_ID = 'ocean';
@@ -570,30 +822,30 @@ export function getNextPalette(currentPaletteId: string): ColorPalette {
 export function getNextPaletteByDifficulty(currentPaletteId: string): ColorPalette {
   const currentPalette = getPalette(currentPaletteId);
   const currentDifficulty = currentPalette.difficulty;
-  
+
   // Get all palettes of the same difficulty
   const sameDifficultyPalettes = COLOR_PALETTES.filter(p => p.difficulty === currentDifficulty);
-  
+
   // Find current palette index within same difficulty
   const currentIndexInDifficulty = sameDifficultyPalettes.findIndex(p => p.id === currentPaletteId);
-  
+
   // If there's a next palette in the same difficulty, use it
   if (currentIndexInDifficulty < sameDifficultyPalettes.length - 1) {
     return sameDifficultyPalettes[currentIndexInDifficulty + 1];
   }
-  
+
   // Otherwise, move to the first palette of the next difficulty
   const difficultyOrder: PaletteDifficulty[] = ['easy', 'average', 'hard'];
   const currentDifficultyIndex = difficultyOrder.indexOf(currentDifficulty);
   const nextDifficultyIndex = (currentDifficultyIndex + 1) % difficultyOrder.length;
   const nextDifficulty = difficultyOrder[nextDifficultyIndex];
-  
+
   // Get first palette of next difficulty
   const nextDifficultyPalettes = COLOR_PALETTES.filter(p => p.difficulty === nextDifficulty);
   if (nextDifficultyPalettes.length > 0) {
     return nextDifficultyPalettes[0];
   }
-  
+
   // Fallback: just cycle to next palette
   return getNextPalette(currentPaletteId);
 }

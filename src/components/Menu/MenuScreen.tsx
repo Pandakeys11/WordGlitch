@@ -8,6 +8,7 @@ import { getCurrentLevel, getUnlockedLevels } from '@/lib/game/levelSystem';
 import { loadProfile, loadSettings, saveSettings } from '@/lib/storage/gameStorage';
 import { initializeLevel } from '@/lib/game/difficulty';
 import { getPalette, DEFAULT_PALETTE_ID, ColorPalette } from '@/lib/colorPalettes';
+import { getPaletteForLevel } from '@/lib/game/levelProgression';
 import PaletteToggle from '../UI/PaletteToggle';
 import { EyeIcon, EyeOffIcon, PlayIcon, UserIcon, TrophyIcon, BookIcon, ZapIcon } from '../UI/GameIcons';
 import { getCurrencyBalance, syncCurrencyWithTotalScore } from '@/lib/currency';
@@ -31,8 +32,9 @@ export default function MenuScreen({
   const [bestScore, setBestScore] = useState(0);
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [currentPalette, setCurrentPalette] = useState<ColorPalette>(() => {
-    const settings = loadSettings();
-    return getPalette(settings.colorPalette || DEFAULT_PALETTE_ID);
+    // Get palette based on current level progression
+    const level = getCurrentLevel();
+    return getPaletteForLevel(level);
   });
   const [currency, setCurrency] = useState(getCurrencyBalance());
   const glitchRef = useRef<LetterGlitchHandle>(null);
@@ -45,7 +47,7 @@ export default function MenuScreen({
     if (profile) {
       syncCurrencyWithTotalScore(profile.totalScore);
     }
-    
+
     // Update currency display periodically
     const interval = setInterval(() => {
       // Re-sync to ensure currency matches total score
@@ -88,10 +90,10 @@ export default function MenuScreen({
       if (screensaverIntervalRef.current) {
         clearInterval(screensaverIntervalRef.current);
       }
-      
+
       // Trigger initial intense glitch
       glitchRef.current?.triggerIntenseGlitch(currentPalette.glitchColors, 500);
-      
+
       // More frequent glitches in screensaver mode
       screensaverIntervalRef.current = setInterval(() => {
         glitchRef.current?.triggerIntenseGlitch(currentPalette.glitchColors, 400);
@@ -141,7 +143,7 @@ export default function MenuScreen({
   };
 
   return (
-    <div 
+    <div
       className={styles.menuScreen}
       style={{
         '--palette-primary': currentPalette.uiColors.primary,
@@ -151,14 +153,14 @@ export default function MenuScreen({
         '--palette-bg': currentPalette.uiColors.background,
       } as React.CSSProperties}
     >
-      <div 
+      <div
         className={`${styles.background} ${!isUIVisible ? styles.screensaver : ''}`}
       >
         <LetterGlitch
           ref={glitchRef}
           level={initializeLevel(1)}
           words={[]}
-          onWordFound={() => {}}
+          onWordFound={() => { }}
           isPaused={false}
           palette={currentPalette}
           menuDisplayWords={['WORD GLITCH', 'by PGT']}
@@ -180,133 +182,133 @@ export default function MenuScreen({
 
       {isUIVisible && (
         <div className={styles.content}>
-          <img 
-            src="/Playground_Title_white.png" 
-            alt="Playground Tools" 
+          <img
+            src="/Playground_Title_white.png"
+            alt="Playground Tools"
             className={styles.logo}
           />
-        <div className={styles.header}>
-          <div className={styles.headerTop}>
-            <h1 
-              className={styles.title}
-              style={{
-                textShadow: `
+          <div className={styles.header}>
+            <div className={styles.headerTop}>
+              <h1
+                className={styles.title}
+                style={{
+                  textShadow: `
                   0 0 20px ${hexToRgba(currentPalette.uiColors.primary, 0.5)},
                   0 0 40px ${hexToRgba(currentPalette.uiColors.primary, 0.3)},
                   0 4px 8px rgba(0, 0, 0, 0.5)
                 `,
-              }}
-            >
-              WORD GLITCH
-            </h1>
-            <div className={styles.musicPlayerWrapper}>
-              <GameMusicPlayer palette={currentPalette} isPaused={false} />
+                }}
+              >
+                WORD GLITCH
+              </h1>
+              <div className={styles.musicPlayerWrapper}>
+                <GameMusicPlayer palette={currentPalette} isPaused={false} />
+              </div>
             </div>
+            <p className={styles.subtitle}>Find words in the chaos</p>
           </div>
-          <p className={styles.subtitle}>Find words in the chaos</p>
-        </div>
 
-        {/* Profile Card - Only shows if logged in */}
-        <div className={styles.profileSection}>
-          <MenuProfileCard 
-            palette={currentPalette} 
-            onClick={onProfile}
-          />
-        </div>
-
-        <div className={styles.stats}>
-          <div 
-            className={styles.stat}
-            style={{
-              borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
-            }}
-          >
-            <span className={styles.statLabel}>Level</span>
-            <span 
-              className={styles.statValue}
-              style={{ color: currentPalette.uiColors.primary }}
-            >
-              {currentLevel}
-            </span>
+          {/* Profile Card - Only shows if logged in */}
+          <div className={styles.profileSection}>
+            <MenuProfileCard
+              palette={currentPalette}
+              onClick={onProfile}
+            />
           </div>
-          {bestScore > 0 && (
-            <div 
+
+          <div className={styles.stats}>
+            <div
               className={styles.stat}
               style={{
                 borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
               }}
             >
-              <span className={styles.statLabel}>Best Score</span>
-              <span 
+              <span className={styles.statLabel}>Level</span>
+              <span
                 className={styles.statValue}
                 style={{ color: currentPalette.uiColors.primary }}
               >
-                {bestScore.toLocaleString()}
+                {currentLevel}
               </span>
             </div>
-          )}
-          <div 
-            className={styles.stat}
-            style={{
-              borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
-            }}
-          >
-            <span className={styles.statLabel}>Currency</span>
-            <span 
-              className={styles.statValue}
-              style={{ color: '#ff0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            {bestScore > 0 && (
+              <div
+                className={styles.stat}
+                style={{
+                  borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
+                }}
+              >
+                <span className={styles.statLabel}>Best Score</span>
+                <span
+                  className={styles.statValue}
+                  style={{ color: currentPalette.uiColors.primary }}
+                >
+                  {bestScore.toLocaleString()}
+                </span>
+              </div>
+            )}
+            <div
+              className={styles.stat}
+              style={{
+                borderColor: hexToRgba(currentPalette.uiColors.primary, 0.3),
+              }}
             >
-              {currency} <ZapIcon size={18} />
-            </span>
+              <span className={styles.statLabel}>Currency</span>
+              <span
+                className={styles.statValue}
+                style={{ color: '#ff0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                {currency} <ZapIcon size={18} />
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.buttons}>
+            <MenuButton
+              label="Play"
+              onClick={onPlay}
+              variant="primary"
+              icon={<PlayIcon size={24} />}
+              onMouseEnter={handleButtonHover}
+              onMouseLeave={handleButtonLeave}
+              palette={currentPalette}
+            />
+            <MenuButton
+              label="Profile"
+              onClick={onProfile}
+              variant="secondary"
+              icon={<UserIcon size={24} />}
+              onMouseEnter={handleButtonHover}
+              onMouseLeave={handleButtonLeave}
+              palette={currentPalette}
+            />
+            <MenuButton
+              label="Leaderboard"
+              onClick={onLeaderboard}
+              variant="secondary"
+              icon={<TrophyIcon size={24} />}
+              onMouseEnter={handleButtonHover}
+              onMouseLeave={handleButtonLeave}
+              palette={currentPalette}
+            />
+            <MenuButton
+              label="Rules"
+              onClick={onSettings}
+              variant="tertiary"
+              icon={<BookIcon size={24} />}
+              onMouseEnter={handleButtonHover}
+              onMouseLeave={handleButtonLeave}
+              palette={currentPalette}
+            />
+          </div>
+
+          <div className={styles.paletteSection}>
+            <PaletteToggle
+              currentPaletteId={currentPalette.id}
+              onPaletteChange={handlePaletteChange}
+            />
           </div>
         </div>
-
-        <div className={styles.buttons}>
-          <MenuButton
-            label="Play"
-            onClick={onPlay}
-            variant="primary"
-            icon={<PlayIcon size={24} />}
-            onMouseEnter={handleButtonHover}
-            onMouseLeave={handleButtonLeave}
-            palette={currentPalette}
-          />
-          <MenuButton
-            label="Profile"
-            onClick={onProfile}
-            variant="secondary"
-            icon={<UserIcon size={24} />}
-            onMouseEnter={handleButtonHover}
-            onMouseLeave={handleButtonLeave}
-            palette={currentPalette}
-          />
-          <MenuButton
-            label="Leaderboard"
-            onClick={onLeaderboard}
-            variant="secondary"
-            icon={<TrophyIcon size={24} />}
-            onMouseEnter={handleButtonHover}
-            onMouseLeave={handleButtonLeave}
-            palette={currentPalette}
-          />
-          <MenuButton
-            label="Rules"
-            onClick={onSettings}
-            variant="tertiary"
-            icon={<BookIcon size={24} />}
-            onMouseEnter={handleButtonHover}
-            onMouseLeave={handleButtonLeave}
-            palette={currentPalette}
-          />
-        </div>
-
-        <div className={styles.paletteSection}>
-          <PaletteToggle
-            currentPaletteId={currentPalette.id}
-            onPaletteChange={handlePaletteChange}
-          />
-        </div>
-      </div>
       )}
     </div>
   );
