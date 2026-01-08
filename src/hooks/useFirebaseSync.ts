@@ -66,5 +66,6 @@ export function useFirebaseSync() {
         syncProgress,
         saveSession,
         forceSync,
+        isSyncInitialized: isInitialized,
     };
 }

@@ -48,7 +48,7 @@ export default function MenuScreen({
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
-  const { user, isAuthenticated } = useFirebaseSync();
+  const { user, isAuthenticated, isSyncInitialized } = useFirebaseSync();
   const glitchRef = useRef<LetterGlitchHandle>(null);
   const screensaverIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -105,8 +105,11 @@ export default function MenuScreen({
     setCurrentPalette(palette);
   }, [currentLevel]);
 
+  // Handle Level & Profile Sync
   useEffect(() => {
+    // When sync initializes or user changes, refresh the level from storage
     const level = getCurrentLevel();
+    console.log('🔄 Sync State Update - Level:', level, 'SyncInit:', isSyncInitialized);
     setCurrentLevel(level);
 
     const profile = loadProfile();
@@ -124,7 +127,7 @@ export default function MenuScreen({
         setProfilePicture(currentProfile.profilePicture);
       }
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, isSyncInitialized]);
 
   // Background glitch
   useEffect(() => {
