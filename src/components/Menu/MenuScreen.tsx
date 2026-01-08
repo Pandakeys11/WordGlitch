@@ -246,14 +246,19 @@ export default function MenuScreen({
               {/* Center Identity Section (Logo + Title) */}
               <div className={styles.titleWrapper}>
                 {/* Logo Centered Over Title */}
-                <div className={styles.logoWrapper}>
+                <a
+                  href="https://pgtools.tech"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.logoWrapper}
+                >
                   <img
                     src="/Playground_Title_white.png"
                     alt="Playground Tools"
                     className={styles.logo}
                   />
                   <div className={styles.logoGlow} />
-                </div>
+                </a>
 
                 <div className={styles.mainTitleRow}>
                   <GlitchText

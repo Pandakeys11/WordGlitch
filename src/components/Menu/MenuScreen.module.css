@@ -97,8 +97,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  justify-content: center;
   margin-bottom: 0.5rem;
-  /* Space between Logo and Title */
+  cursor: pointer;
+  text-decoration: none;
 }
 
 .logo {
