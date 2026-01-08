@@ -4,14 +4,13 @@
   left: 0;
   right: 0;
   z-index: 10;
-  background: linear-gradient(to bottom, 
-    rgba(0, 0, 0, 1) 0%, 
-    rgba(0, 0, 0, 0.98) 40%,
-    rgba(0, 0, 0, 0.95) 60%, 
-    rgba(0, 0, 0, 0.85) 80%, 
-    rgba(0, 0, 0, 0.6) 90%,
-    transparent 100%
-  );
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0.98) 40%,
+      rgba(0, 0, 0, 0.95) 60%,
+      rgba(0, 0, 0, 0.85) 80%,
+      rgba(0, 0, 0, 0.6) 90%,
+      transparent 100%);
   padding: 1rem;
   pointer-events: none;
   backdrop-filter: blur(12px);
@@ -98,9 +97,12 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -186,7 +188,8 @@
 @media (max-width: 768px) {
   .hud {
     padding: 0.75rem;
-    min-height: 100px;
+    min-height: auto;
+    /* Allow auto height */
     padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
     padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
     padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
@@ -194,12 +197,20 @@
 
   .topBar {
     gap: 0.5rem;
-    align-items: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    /* Ensure wrapping */
   }
 
   .statGroup {
     gap: 0.75rem;
-    flex: 1 1 auto;
+    flex: 1 1 100%;
+    /* Force stats to own row initially or wrap */
+    order: 2;
+    /* Put stats below on tablet if needed, or keep top */
+    order: 0;
+    /* Let's keep stats prominent */
+    justify-content: flex-start;
   }
 
   .stat {
@@ -216,19 +227,18 @@
 
   .topBarActions {
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    justify-content: flex-end;
   }
 
   .profileCardWrapper {
-    order: -2;
-    width: 100%;
-    margin-bottom: 0.5rem;
+    display: none;
+    /* Hide profile card on smaller screens to save space */
   }
 
   .musicPlayerWrapper {
-    order: -1;
-    width: 100%;
-    margin-bottom: 0.5rem;
+    display: none;
+    /* Hide music player on smaller screens */
   }
 
   .actionButton,
@@ -253,39 +263,36 @@
 @media (max-width: 480px) {
   .hud {
     padding: 0.5rem;
-    min-height: 90px;
     padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
     padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
     padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
   }
 
   .topBar {
-    flex-direction: column;
+    flex-direction: row;
+    /* Keep row */
     gap: 0.5rem;
-    align-items: stretch;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .statGroup {
-    gap: 0.5rem;
-    order: 2;
+    gap: 0.75rem;
+    flex: 1;
+    /* Take available space */
+    order: 0;
   }
 
   .topBarActions {
     order: 1;
     justify-content: flex-end;
-    align-self: flex-end;
+    flex: 0 0 auto;
   }
 
-  .profileCardWrapper {
-    order: -2;
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-
+  /* Ensure these stay hidden */
+  .profileCardWrapper,
   .musicPlayerWrapper {
-    order: -1;
-    width: 100%;
-    margin-bottom: 0.5rem;
+    display: none;
   }
 
   .stat {
@@ -326,13 +333,12 @@
 /* Landscape orientation on mobile */
 @media (orientation: landscape) and (max-height: 500px) {
   .hud {
-    min-height: 80px;
-    padding: 0.5rem;
+    min-height: 60px;
+    padding: 0.25rem 0.5rem;
   }
 
   .topBar {
-    flex-direction: row;
-    align-items: center;
+    margin-bottom: 0.25rem;
   }
 
   .statGroup {
@@ -349,16 +355,15 @@
 
   .actionButton,
   .pauseButton {
-    width: 2.25rem;
-    height: 2.25rem;
-    min-width: 2.25rem;
-    min-height: 2.25rem;
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
   }
 
   .actionButton .icon,
   .pauseButton .icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 }
-

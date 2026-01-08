@@ -6,6 +6,7 @@ import AchievementBadge from './AchievementBadge';
 import ProfileCard from './ProfileCard';
 import {
   loadProfile,
+  loadProgress,
   loadAchievements,
   getAllProfiles,
   createProfile,
@@ -97,6 +98,8 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     }
   }, [stats]);
 
+  const [progressLevel, setProgressLevel] = useState(1);
+
   const refreshData = () => {
     const profileId = getCurrentProfileId();
     setCurrentProfileId(profileId);
@@ -105,7 +108,9 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
     if (profileId) {
       const profile = loadProfile();
+      const progress = loadProgress();
       setStats(profile);
+      setProgressLevel(progress?.currentLevel || 1);
       setAchievements(loadAchievements().unlocked);
       setViewMode('profile');
       // Currency will be synced in the useEffect that watches stats
@@ -543,7 +548,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             />
             <StatsCard
               label="Current Level"
-              value={stats.currentLevel}
+              value={progressLevel}
               icon={<GamepadIcon size={32} />}
             />
             <StatsCard

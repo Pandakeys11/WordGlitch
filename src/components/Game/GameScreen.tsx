@@ -100,6 +100,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
   const startTimeRef = useRef<number>(Date.now());
   const pausedTimeRef = useRef<number>(0);
   const pauseStartRef = useRef<number | null>(null);
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to calculate responsive exclusion zones
   const getExclusionZones = useCallback(() => {
@@ -613,12 +614,26 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
       handleGameOver(true);
 
       // Auto-advance to next level immediately (no modal, like normal level progression)
-      // Small delay to show the last word found animation
-      setTimeout(() => {
+      // Delay increased to 4 seconds to allow user to see stats
+      // Store in ref to allow cleanup if component unmounts (e.g. user goes to menu)
+      autoAdvanceTimeoutRef.current = setTimeout(() => {
         onLevelComplete(level + 1);
-      }, 500); // Just 0.5 seconds to see the completion
+      }, 4000); // 4 seconds to see the completion stats
     }
+
+    // Cleanup timeout if dependencies change (though mainly for unmount which is handled separately)
+    // We don't want to clear on gameOver change because that happens during the flow
+
   }, [words, gameOver, showHangman, hangmanCompleted, level, onLevelComplete]);
+
+  // Clean up auto-advance timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleWordFound = useCallback((word: string, isCorrectClick: boolean) => {
     if (!wordManagerRef.current) return;
@@ -1299,6 +1314,7 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
         currentPaletteId={currentPalette.id}
         isPaused={isPaused}
         isGameOver={gameOver}
+        totalTime={Math.min(30 + (currentLevel.level - 1) * 5, 300)}
       />
 
       <div className={styles.wordListContainer}>

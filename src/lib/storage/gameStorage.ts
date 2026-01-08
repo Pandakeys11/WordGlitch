@@ -806,47 +806,64 @@ export function updateStats(session: GameSession): void {
     return;
   }
 
+  // Calculate play time with safeguards
   // Use levelTime from score if available, otherwise calculate from session times
-  // Use consistent rounding (round to nearest second) for accuracy
-  const playTime = session.score.levelTime !== undefined
+  let playTime = session.score.levelTime !== undefined
     ? Math.round(session.score.levelTime)
     : (session.endTime && session.startTime
       ? Math.round((session.endTime - session.startTime) / 1000)
       : 0);
 
-  const newRoundsPlayed = existing.levelsCompleted + 1;
+  // Sanity check: If we found words, it couldn't have taken 0 seconds
+  if (playTime <= 0 && session.score.wordsFound > 0) {
+    playTime = Math.max(1, session.score.wordsFound * 2); // Estimate ~2s per word if time is somehow 0
+  }
+
+  const newRoundsPlayed = (existing.totalRoundsPlayed || existing.levelsCompleted) + 1;
   const isPerfectRound = session.score.accuracy >= 100;
   const totalWords = existing.totalWordsFound + session.score.wordsFound;
   const totalTime = existing.totalPlayTime + playTime;
   const wordsPerMin = totalTime > 0 ? (totalWords / totalTime) * 60 : 0;
 
   // Calculate fastest round time (handle Infinity/undefined for first round)
-  const existingFastest = existing.fastestRoundTime !== undefined && existing.fastestRoundTime !== Infinity
+  // Fix: Don't let 0 overwrite a valid time unless it was a super fast round (check words)
+  const existingFastest = existing.fastestRoundTime !== undefined && existing.fastestRoundTime !== Infinity && existing.fastestRoundTime > 0
     ? existing.fastestRoundTime
     : Infinity;
-  const fastestTime = existingFastest === Infinity
-    ? playTime
-    : Math.min(existingFastest, playTime);
+
+  let fastestTime = existingFastest;
+  if (playTime > 0) {
+    fastestTime = existingFastest === Infinity ? playTime : Math.min(existingFastest, playTime);
+  }
 
   // Calculate average round time
-  const avgRoundTime = totalTime / newRoundsPlayed;
+  const avgRoundTime = newRoundsPlayed > 0 ? totalTime / newRoundsPlayed : 0;
 
   // Calculate average score per round
-  const avgScorePerRound = (existing.totalScore + session.score.finalScore) / newRoundsPlayed;
+  const currentTotalScore = existing.totalScore + session.score.finalScore;
+  const avgScorePerRound = newRoundsPlayed > 0 ? currentTotalScore / newRoundsPlayed : 0;
+
+  // Robust best score calculation
+  // Check against all known "best" metrics to ensure we don't lose the high score
+  const currentBest = Math.max(
+    existing.bestScore || 0,
+    existing.bestRoundScore || 0,
+    session.score.finalScore || 0
+  );
 
   const updatedStats: GameStats = {
     totalWordsFound: totalWords,
-    levelsCompleted: newRoundsPlayed,
-    bestScore: Math.max(existing.bestScore, session.score.finalScore),
-    totalScore: existing.totalScore + session.score.finalScore, // Accumulate total score across all levels
-    averageAccuracy: (existing.averageAccuracy * existing.levelsCompleted + session.score.accuracy) / newRoundsPlayed,
+    levelsCompleted: newRoundsPlayed, // Sync these for consistency
+    bestScore: currentBest,
+    totalScore: currentTotalScore,
+    averageAccuracy: (existing.averageAccuracy * (newRoundsPlayed - 1) + session.score.accuracy) / newRoundsPlayed,
     totalPlayTime: totalTime,
     currentLevel: Math.max(existing.currentLevel, session.level),
     unlockedLevels: [...new Set([...existing.unlockedLevels, session.level])],
     // Extended statistics
     totalRoundsPlayed: newRoundsPlayed,
     highestRound: Math.max(existing.highestRound || existing.currentLevel, session.level),
-    bestRoundScore: Math.max(existing.bestRoundScore || existing.bestScore, session.score.finalScore),
+    bestRoundScore: currentBest,
     fastestRoundTime: fastestTime,
     averageRoundTime: avgRoundTime,
     averageScorePerRound: avgScorePerRound,

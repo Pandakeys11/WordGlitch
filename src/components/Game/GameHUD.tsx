@@ -4,6 +4,7 @@ import React from 'react';
 import { HomeIcon, RestartIcon, PauseIcon } from '../UI/GameIcons';
 import { getPalette, ColorPalette } from '@/lib/colorPalettes';
 import GameMusicPlayer from './GameMusicPlayer';
+import CountdownTimer from './CountdownTimer';
 import GameProfileCard from './GameProfileCard';
 import styles from './GameHUD.module.css';
 import gameScreenStyles from './GameScreen.module.css';
@@ -22,6 +23,7 @@ interface GameHUDProps {
   currentPaletteId?: string;
   isPaused?: boolean;
   isGameOver?: boolean; // Indicates if game over modal is showing
+  totalTime?: number;
 }
 
 export default function GameHUD({
@@ -38,9 +40,10 @@ export default function GameHUD({
   currentPaletteId = 'ocean',
   isPaused = false,
   isGameOver = false,
+  totalTime = 60,
 }: GameHUDProps) {
   const palette = getPalette(currentPaletteId);
-  
+
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
@@ -73,7 +76,7 @@ export default function GameHUD({
           {combo > 0 && (
             <div className={styles.stat}>
               <span className={styles.label}>Combo</span>
-              <span 
+              <span
                 className={`${styles.value} ${styles.combo}`}
                 style={{
                   color: palette.hiddenWordColor,
@@ -85,22 +88,21 @@ export default function GameHUD({
             </div>
           )}
           {timeRemaining !== undefined && (
-            <div className={styles.stat}>
-              <span className={styles.label}>Remaining</span>
-              <span className={`${styles.value} ${timeRemaining < 10 ? styles.warning : ''}`}>
-                {Math.ceil(timeRemaining)}s
-              </span>
-            </div>
+            <CountdownTimer
+              timeRemaining={timeRemaining}
+              palette={palette}
+              totalTime={totalTime}
+            />
           )}
         </div>
-        <img 
-          src="/Playground_Title_white.png" 
-          alt="Playground Tools" 
+        <img
+          src="/Playground_Title_white.png"
+          alt="Playground Tools"
           className={gameScreenStyles.logo}
         />
-        <img 
-          src="/Playground_Title_white.png" 
-          alt="Playground Tools" 
+        <img
+          src="/Playground_Title_white.png"
+          alt="Playground Tools"
           className={gameScreenStyles.logoRight}
         />
         <div className={styles.topBarActions}>

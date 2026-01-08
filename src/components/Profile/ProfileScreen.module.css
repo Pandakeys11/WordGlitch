@@ -19,6 +19,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -106,7 +107,7 @@
   padding: 1rem;
   font-size: 1.125rem;
   background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: #fff;
   margin-bottom: 1rem;
@@ -275,7 +276,7 @@
   width: 100%;
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
 }
 
 .createNewButton:hover {
@@ -406,7 +407,8 @@
     padding: 0.625rem 1.25rem;
     font-size: 0.9rem;
     margin-bottom: 1.5rem;
-    min-height: 44px; /* Touch target size */
+    min-height: 44px;
+    /* Touch target size */
   }
 
   .statsGrid {
@@ -441,7 +443,8 @@
   .logoutButton {
     padding: 0.625rem 1rem;
     font-size: 0.9rem;
-    min-height: 44px; /* Touch target size */
+    min-height: 44px;
+    /* Touch target size */
   }
 
   .createForm {
@@ -451,14 +454,16 @@
   .nameInput {
     padding: 0.875rem;
     font-size: 1rem;
-    min-height: 44px; /* Touch target size */
+    min-height: 44px;
+    /* Touch target size */
   }
 
   .primaryButton,
   .secondaryButton {
     padding: 0.875rem 1.25rem;
     font-size: 0.9rem;
-    min-height: 44px; /* Touch target size */
+    min-height: 44px;
+    /* Touch target size */
   }
 
   .resetSection {
@@ -469,7 +474,8 @@
   .resetButton {
     padding: 0.875rem 1.5rem;
     font-size: 1rem;
-    min-height: 44px; /* Touch target size */
+    min-height: 44px;
+    /* Touch target size */
   }
 
   .walletSection {
@@ -479,7 +485,8 @@
   .connectButton {
     padding: 0.875rem 1.5rem;
     font-size: 1rem;
-    min-height: 44px; /* Touch target size */
+    min-height: 44px;
+    /* Touch target size */
   }
 }
 
@@ -503,7 +510,7 @@
   border: none;
   background: rgba(255, 68, 68, 0.2);
   color: #ff4444;
-  border: 2px solid rgba(255, 68, 68, 0.4);
+  border: 1px solid rgba(255, 68, 68, 0.4);
   margin-bottom: 1rem;
 }
 

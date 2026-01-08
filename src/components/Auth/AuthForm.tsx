@@ -8,6 +8,7 @@ import {
     convertAnonymousAccount
 } from '@/lib/firebase/auth';
 import { ColorPalette } from '@/lib/colorPalettes';
+import Loader from '../UI/Loader';
 // We'll reuse AuthModal styles for now or create new ones, but for simplicity let's use inline or a new module
 import styles from './AuthForm.module.css';
 
@@ -154,7 +155,14 @@ export default function AuthForm({ palette, onSuccess, isAnonymous = false, embe
                         color: '#ffffff',
                     }}
                 >
-                    {loading ? 'LOADING...' : mode === 'guest' ? 'PLAY AS GUEST' : mode === 'signup' ? 'CREATE ACCOUNT' : 'LOGIN'}
+                    {loading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Loader type="tailspin" size={20} color="#ffffff" />
+                            <span>PROCESSING...</span>
+                        </div>
+                    ) : (
+                        mode === 'guest' ? 'PLAY AS GUEST' : mode === 'signup' ? 'CREATE ACCOUNT' : 'LOGIN'
+                    )}
                 </button>
             </form>
         </div>

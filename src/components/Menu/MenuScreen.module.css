@@ -54,7 +54,7 @@
   width: 100%;
   max-width: 1400px;
   max-height: 90vh;
-  border: 2px solid;
+  border: 1px solid;
   border-radius: 24px;
   padding: 2.5rem;
   backdrop-filter: blur(20px);
@@ -86,7 +86,7 @@
   /* Align vertically center */
   gap: 2rem;
   padding-bottom: 2rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
 }
 
@@ -229,7 +229,7 @@
 .statCard {
   padding: 1.25rem;
   border-radius: 12px;
-  border: 2px solid;
+  border: 1px solid;
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
@@ -290,7 +290,7 @@
 .leaderboardCard {
   flex: 1;
   border-radius: 16px;
-  border: 2px solid;
+  border: 1px solid;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
   display: flex;
@@ -304,7 +304,7 @@
   align-items: center;
   gap: 0.75rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .leaderboardHeader h3 {
@@ -342,7 +342,7 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 8px;
-  border: 2px solid;
+  border: 1px solid;
   transition: all 0.2s ease;
 }
 
@@ -371,7 +371,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid;
+  border: 1px solid;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -453,7 +453,7 @@
 
 .viewFullButton {
   padding: 0.875rem;
-  border: 2px solid;
+  border: 1px solid;
   border-radius: 8px;
   background: transparent;
   font-size: 0.9rem;
@@ -482,13 +482,13 @@
   gap: 0.75rem;
   padding: 1rem;
   border-radius: 8px;
-  border: 2px solid;
+  border: 1px solid;
   font-size: 0.9rem;
 }
 
 .signOutButton {
   padding: 0.75rem;
-  border: 2px solid;
+  border: 1px solid;
   border-radius: 8px;
   background: transparent;
   font-size: 0.85rem;

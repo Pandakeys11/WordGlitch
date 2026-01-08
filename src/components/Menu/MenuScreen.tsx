@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { calculateProfileLevel } from '@/lib/game/profileSystem';
 import MenuButton from './MenuButton';
 import ProfileCard from './ProfileCard';
+import Loader from '../UI/Loader';
 import LetterGlitch, { LetterGlitchHandle } from '../Game/LetterGlitch';
 import AuthModal from '../Auth/AuthModal';
 import { getCurrentLevel } from '@/lib/game/levelSystem';
@@ -358,7 +360,7 @@ export default function MenuScreen({
                   palette={currentPalette}
                   username={user?.displayName || user?.email?.split('@')[0] || 'Player'}
                   totalScore={bestScore}
-                  currentLevel={currentLevel}
+                  currentLevel={calculateProfileLevel(bestScore)}
                   profilePicture={profilePicture}
                   onClick={onProfile}
                 />
@@ -437,7 +439,7 @@ export default function MenuScreen({
 
                   {loadingLeaderboard ? (
                     <div className={styles.leaderboardLoading} style={{ color: currentPalette.uiColors.text }}>
-                      Loading...
+                      <Loader type="hatch" size={30} color={currentPalette.uiColors.primary} />
                     </div>
                   ) : leaderboard.length === 0 ? (
                     <div className={styles.leaderboardEmpty} style={{ color: currentPalette.uiColors.text }}>
@@ -520,10 +522,10 @@ export default function MenuScreen({
                                 </span>
                               </div>
 
-                              {/* Level (Moved to 2nd slot, clearer color) */}
+                              {/* Level (Profile Level based on Score) */}
                               <div className={styles.statItem}>
-                                <span className={styles.statValue} style={{ color: currentPalette.uiColors.text, fontWeight: 900 }}>
-                                  Lvl {entry.highestLevel}
+                                <span className={styles.statValue} style={{ color: currentPalette.uiColors.text }}>
+                                  Lvl {Math.floor(Math.sqrt(entry.totalScore / 500)) + 1}
                                 </span>
                               </div>
                             </div>
