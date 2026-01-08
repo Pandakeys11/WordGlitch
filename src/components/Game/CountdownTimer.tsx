@@ -3,6 +3,9 @@
 import React, { useRef, useEffect } from 'react';
 import styles from './CountdownTimer.module.css';
 import { ColorPalette } from '@/lib/colorPalettes';
+import * as animeModule from 'animejs';
+
+const anime = (animeModule as any).default || animeModule;
 
 interface CountdownTimerProps {
     timeRemaining: number;
@@ -15,7 +18,6 @@ export default function CountdownTimer({
     totalTime = 60,
     palette
 }: CountdownTimerProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLSpanElement>(null);
     const barRef = useRef<HTMLDivElement>(null);
     const previousTimeRef = useRef(timeRemaining);
@@ -23,38 +25,32 @@ export default function CountdownTimer({
     // Animate text updates smoothly
     useEffect(() => {
         if (textRef.current) {
-            import('animejs').then((module) => {
-                const anime = module.default || module;
-                anime({
-                    targets: { value: previousTimeRef.current },
-                    value: timeRemaining,
-                    round: 1,
-                    duration: 900,
-                    easing: 'linear',
-                    update: function (anim: any) {
-                        if (textRef.current) {
-                            textRef.current.innerHTML = Math.ceil(Number(anim.animations[0].currentValue)).toString() + 's';
-                        }
+            anime({
+                targets: { value: previousTimeRef.current },
+                value: timeRemaining,
+                round: 1,
+                duration: 900,
+                easing: 'linear',
+                update: function (anim: any) {
+                    if (textRef.current) {
+                        textRef.current.innerHTML = Math.ceil(Number(anim.animations[0].currentValue)).toString() + 's';
                     }
-                });
-                previousTimeRef.current = timeRemaining;
+                }
             });
+            previousTimeRef.current = timeRemaining;
         }
     }, [timeRemaining]);
 
     // Animate progress bar smoothly
     useEffect(() => {
         if (barRef.current && totalTime > 0) {
-            import('animejs').then((module) => {
-                const anime = module.default || module;
-                const percentage = (timeRemaining / totalTime) * 100;
-                anime({
-                    targets: barRef.current,
-                    width: `${percentage}%`,
-                    backgroundColor: timeRemaining < 10 ? '#ef4444' : palette.uiColors.secondary,
-                    easing: 'linear',
-                    duration: 100
-                });
+            const percentage = (timeRemaining / totalTime) * 100;
+            anime({
+                targets: barRef.current,
+                width: `${percentage}%`,
+                backgroundColor: timeRemaining < 10 ? '#ef4444' : palette.uiColors.secondary,
+                easing: 'linear',
+                duration: 100
             });
         }
     }, [timeRemaining, totalTime, palette]);
