@@ -655,3 +655,11 @@
   }
 }
 
+
+.cloudCard {
+  transition: transform 0.2s;
+}
+
+.cloudCard:hover {
+  transform: translateY(-2px);
+}

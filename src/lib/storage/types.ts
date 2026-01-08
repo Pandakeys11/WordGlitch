@@ -1,4 +1,5 @@
 import { GameStats, Achievement, LeaderboardEntry } from '@/types/profile';
+export type { GameStats, Achievement, LeaderboardEntry };
 import { GameSession } from '@/types/game';
 
 export interface StoredProfile {
@@ -10,6 +11,7 @@ export interface StoredProgress {
   currentLevel: number;
   unlockedLevels: number[];
   bestScores: Record<number, number>; // level -> best score
+  achievements?: Array<{ id: string; unlockedAt: number }>; // Added for Firebase
 }
 
 export interface StoredAchievements {

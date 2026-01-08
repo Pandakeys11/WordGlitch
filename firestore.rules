@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Leaderboard - Public read, authenticated write
+    match /leaderboard/{userId} {
+      // Anyone can read the leaderboard
+      allow read: if true;
+      
+      // Only authenticated users can write their own entry
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User profiles - Private
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can write their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User progress - Private
+    match /progress/{userId} {
+      // Users can read their own progress
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can write their own progress
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Game sessions - Private
+    match /sessions/{sessionId} {
+      // Users can read their own sessions
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.userId;
+      
+      // Users can write their own sessions
+      allow write: if request.auth != null && 
+                      request.auth.uid == request.resource.data.userId;
+    }
+  }
+}

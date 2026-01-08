@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 import StatsCard from './StatsCard';
 import AchievementBadge from './AchievementBadge';
 import ProfileCard from './ProfileCard';
-import { 
-  loadProfile, 
-  loadAchievements, 
-  getAllProfiles, 
-  createProfile, 
+import {
+  loadProfile,
+  loadAchievements,
+  getAllProfiles,
+  createProfile,
   switchProfile,
   getCurrentProfileId,
   deleteProfile,
@@ -37,6 +37,9 @@ import {
   MedalIcon
 } from '@/components/UI/GameIcons';
 import styles from './ProfileScreen.module.css';
+import AuthForm from '../Auth/AuthForm'; // Import the new form
+import { useFirebaseSync } from '@/hooks/useFirebaseSync'; // Hook for auth state
+import { getPaletteForLevel } from '@/lib/game/levelProgression'; // To style the form
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -55,6 +58,11 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [currency, setCurrency] = useState<number>(0);
 
+  const { user, isAuthenticated } = useFirebaseSync(); // Get auth state
+
+  // Get current palette for styling
+  const currentPalette = getPaletteForLevel(stats?.currentLevel || 1);
+
   useEffect(() => {
     refreshData();
     // Check for wallet connection and auto-login
@@ -64,7 +72,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   // Check wallet connection and auto-login if profile exists
   const checkWalletAndAutoLogin = async () => {
     if (!isWalletAvailable()) return;
-    
+
     try {
       const walletAddress = await getWalletAddress();
       if (walletAddress) {
@@ -172,11 +180,20 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     }
   };
 
+  // Handler for successful auth in ProfileScreen
+  const handleAuthSuccess = () => {
+    // initializeSync is handled automatically by useFirebaseSync or we can force it
+    // But we should refresh local data view
+    refreshData();
+    // Maybe show a success message?
+    alert('Logged in successfully!');
+  };
+
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -329,20 +346,22 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           <h1 className={styles.title}>Profile</h1>
           {currentProfile && (
             <div className={styles.profileHeaderActions}>
+              {/* Keep Switch Profile for local switching if needed, or remove if confusing */}
               {profiles.length > 1 && (
-                <button
-                  className={styles.switchButton}
-                  onClick={() => setViewMode('login')}
-                >
-                  Switch Profile
+                <button className={styles.switchButton} onClick={() => setViewMode('login')}>
+                  Switch Local
                 </button>
               )}
-              <button
-                className={styles.logoutButton}
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
+              {/* Logout is handled by auth now if remote */}
+              {isAuthenticated && (
+                <button className={styles.logoutButton} onClick={async () => {
+                  const { signOut } = await import('@/lib/firebase/auth');
+                  await signOut();
+                  refreshData();
+                }}>
+                  Sign Out
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -361,6 +380,42 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             {error}
           </div>
         )}
+
+        {/* Cloud Sync Section - THE NEW FEATURE */}
+        <div className={styles.statsSection} style={{ marginTop: '2rem' }}>
+          <h2 className={styles.sectionTitle}>Cloud Account</h2>
+          <div className={styles.cloudCard} style={{
+            background: 'rgba(255,255,255,0.05)',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: `1px solid ${isAuthenticated ? '#4ade80' : 'rgba(255,255,255,0.1)'}`
+          }}>
+            {isAuthenticated && user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ fontSize: '2rem' }}>☁️</div>
+                <div>
+                  <h3 style={{ margin: 0, color: '#fff' }}>Synched to Cloud</h3>
+                  <p style={{ margin: 0, opacity: 0.7 }}>{user.email || 'Anonymous Account'}</p>
+                  <div style={{ fontSize: '0.8rem', color: '#4ade80', marginTop: '0.5rem' }}>
+                    ✅ Progress saved automatically
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h3 style={{ margin: '0 0 1rem 0', color: '#fff' }}>Sync Your Progress</h3>
+                <p style={{ opacity: 0.7, marginBottom: '1.5rem' }}>
+                  Sign in to save your stats to the cloud and appear on the global leaderboard.
+                </p>
+                <AuthForm
+                  palette={currentPalette}
+                  onSuccess={handleAuthSuccess}
+                  embedded={true}
+                />
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Overview Stats Section */}
         <div className={styles.statsSection}>
@@ -426,7 +481,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
             />
             <StatsCard
               label="Average Round Time"
-              value={stats.averageRoundTime !== undefined && stats.averageRoundTime > 0 
+              value={stats.averageRoundTime !== undefined && stats.averageRoundTime > 0
                 ? formatTime(Math.round(stats.averageRoundTime))
                 : 'N/A'}
               icon={<ClockIcon size={32} />}
@@ -440,14 +495,14 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           <div className={styles.statsGrid}>
             <StatsCard
               label="Words Per Minute"
-              value={stats.wordsPerMinute > 0 
+              value={stats.wordsPerMinute > 0
                 ? stats.wordsPerMinute.toFixed(1)
                 : '0.0'}
               icon={<RocketIcon size={32} />}
             />
             <StatsCard
               label="Average Score Per Round"
-              value={stats.averageScorePerRound > 0 
+              value={stats.averageScorePerRound > 0
                 ? Math.round(stats.averageScorePerRound).toLocaleString()
                 : '0'}
               icon={<TrendingUpIcon size={32} />}
@@ -529,4 +584,3 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
     </div>
   );
 }
-

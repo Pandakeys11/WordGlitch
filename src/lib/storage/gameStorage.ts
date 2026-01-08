@@ -1,15 +1,24 @@
-import { 
-  StoredProfile, 
-  StoredProgress, 
-  StoredAchievements, 
+import {
+  StoredProfile,
+  StoredProgress,
+  StoredAchievements,
   StoredLeaderboard,
   GameSettings,
   ProfileMetadata,
   StoredProfiles
 } from './types';
+export const STORAGE_KEYS = {
+  CURRENT_LEVEL: 'word-glitch-level',
+  PROGRESS: 'word-glitch-progress',
+  PROFILES: 'word-glitch-profiles',
+  CURRENT_PROFILE: 'word-glitch-current-profile',
+  ACHIEVEMENTS: 'word-glitch-achievements',
+  LEADERBOARD: 'word-glitch-leaderboard',
+  SETTINGS: 'word-glitch-settings',
+  PROFILE: 'word-glitch-profile',
+};
 import { GameStats, Achievement, LeaderboardEntry } from '@/types/profile';
 import { GameSession } from '@/types/game';
-import { STORAGE_KEYS } from '@/lib/constants';
 
 // Profile Management
 function getProfileKey(profileId: string): string {
@@ -64,7 +73,7 @@ export function createProfile(name: string, walletAddress?: string): string {
   }
 
   const profiles = loadProfilesList();
-  
+
   // Check if name already exists
   if (profiles.profiles.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
     throw new Error('A profile with this name already exists');
@@ -128,7 +137,7 @@ export function createProfile(name: string, walletAddress?: string): string {
 export function switchProfile(profileId: string): void {
   const profiles = loadProfilesList();
   const profile = profiles.profiles.find(p => p.id === profileId);
-  
+
   if (!profile) {
     throw new Error('Profile not found');
   }
@@ -142,7 +151,7 @@ export function switchProfile(profileId: string): void {
 export function linkWalletToProfile(profileId: string, walletAddress: string): void {
   const profiles = loadProfilesList();
   const profile = profiles.profiles.find(p => p.id === profileId);
-  
+
   if (!profile) {
     throw new Error('Profile not found');
   }
@@ -151,7 +160,7 @@ export function linkWalletToProfile(profileId: string, walletAddress: string): v
   const existingProfile = profiles.profiles.find(
     p => p.id !== profileId && p.walletAddress?.toLowerCase() === walletAddress.toLowerCase()
   );
-  
+
   if (existingProfile) {
     throw new Error(`This wallet is already linked to profile "${existingProfile.name}"`);
   }
@@ -160,10 +169,29 @@ export function linkWalletToProfile(profileId: string, walletAddress: string): v
   saveProfilesList(profiles);
 }
 
+export function updateProfileMetadata(profileId: string, updates: Partial<ProfileMetadata>): void {
+  const profiles = loadProfilesList();
+  const index = profiles.profiles.findIndex(p => p.id === profileId);
+
+  if (index === -1) {
+    throw new Error('Profile not found');
+  }
+
+  // Preserve ID and creation time
+  profiles.profiles[index] = {
+    ...profiles.profiles[index],
+    ...updates,
+    id: profileId, // Prevent ID change
+    createdAt: profiles.profiles[index].createdAt, // Prevent createdAt change
+  };
+
+  saveProfilesList(profiles);
+}
+
 export function unlinkWalletFromProfile(profileId: string): void {
   const profiles = loadProfilesList();
   const profile = profiles.profiles.find(p => p.id === profileId);
-  
+
   if (!profile) {
     throw new Error('Profile not found');
   }
@@ -201,7 +229,7 @@ export function updateProfileName(profileId: string, newName: string): void {
 
   const profiles = loadProfilesList();
   const profile = profiles.profiles.find(p => p.id === profileId);
-  
+
   if (!profile) {
     throw new Error('Profile not found');
   }
@@ -218,7 +246,7 @@ export function updateProfileName(profileId: string, newName: string): void {
 export function updateProfilePicture(profileId: string, pictureDataUrl: string | null): void {
   const profiles = loadProfilesList();
   const profile = profiles.profiles.find(p => p.id === profileId);
-  
+
   if (!profile) {
     throw new Error('Profile not found');
   }
@@ -249,7 +277,7 @@ export function deleteProfile(profileId: string): void {
 }
 
 // Profile Storage (now profile-specific)
-function saveProfileForId(profileId: string, stats: GameStats): void {
+export function saveProfileForId(profileId: string, stats: GameStats): void {
   const profile: StoredProfile = {
     stats,
     lastPlayed: Date.now(),
@@ -263,7 +291,7 @@ export function saveProfile(stats: GameStats): void {
     throw new Error('No active profile. Please create or login to a profile first.');
   }
   saveProfileForId(profileId, stats);
-  
+
   // Update last played in profiles list
   const profiles = loadProfilesList();
   const profile = profiles.profiles.find(p => p.id === profileId);
@@ -467,7 +495,7 @@ export function saveScore(entry: LeaderboardEntry): void {
       entry.walletAddress = profile.walletAddress;
     }
   }
-  
+
   const leaderboard = loadLeaderboard();
   leaderboard.entries.push(entry);
   // Sort by time (faster is better) and accuracy (higher is better)
@@ -498,10 +526,10 @@ export function saveScore(entry: LeaderboardEntry): void {
 export function getLeaderboard(limit?: number): LeaderboardEntry[] {
   const leaderboard = loadLeaderboard();
   const profiles = loadProfilesList();
-  
+
   // Group entries by profileId
   const entriesByProfile = new Map<string, LeaderboardEntry[]>();
-  
+
   leaderboard.entries.forEach(entry => {
     if (entry.profileId) {
       if (!entriesByProfile.has(entry.profileId)) {
@@ -510,10 +538,10 @@ export function getLeaderboard(limit?: number): LeaderboardEntry[] {
       entriesByProfile.get(entry.profileId)!.push(entry);
     }
   });
-  
+
   // For each profile, get the best entry (highest score)
   const topEntries: LeaderboardEntry[] = [];
-  
+
   entriesByProfile.forEach((entries, profileId) => {
     // Find the best entry (highest score)
     const bestEntry = entries.reduce((best, current) => {
@@ -529,11 +557,11 @@ export function getLeaderboard(limit?: number): LeaderboardEntry[] {
       }
       return best;
     });
-    
+
     // Get profile metadata and stats
     const profile = profiles.profiles.find(p => p.id === profileId);
     const profileStats = profile ? loadProfileForId(profileId) : null;
-    
+
     // Create enhanced entry with profile data
     const enhancedEntry: LeaderboardEntry = {
       ...bestEntry,
@@ -543,41 +571,41 @@ export function getLeaderboard(limit?: number): LeaderboardEntry[] {
       totalScore: profileStats?.totalScore || 0,
       totalTime: profileStats?.totalPlayTime || 0,
     };
-    
+
     topEntries.push(enhancedEntry);
   });
-  
+
   // Sort by total score (descending), then by total time (ascending - faster is better)
   topEntries.sort((a, b) => {
     const totalScoreA = a.totalScore || a.score;
     const totalScoreB = b.totalScore || b.score;
-    
+
     if (totalScoreB !== totalScoreA) {
       return totalScoreB - totalScoreA; // Higher total score is better
     }
-    
+
     // If total scores are equal, sort by total time (faster is better)
     const totalTimeA = a.totalTime || 0;
     const totalTimeB = b.totalTime || 0;
-    
+
     if (totalTimeA !== totalTimeB) {
       return totalTimeA - totalTimeB; // Faster time is better
     }
-    
+
     // If times are equal, sort by level (higher is better)
     return b.level - a.level;
   });
-  
+
   return limit ? topEntries.slice(0, limit) : topEntries;
 }
 
 export function getLeaderboardByLevel(level: number, limit = 10): LeaderboardEntry[] {
   const leaderboard = loadLeaderboard();
   const profiles = loadProfilesList();
-  
+
   // Filter entries by level and group by profileId
   const entriesByProfile = new Map<string, LeaderboardEntry[]>();
-  
+
   leaderboard.entries
     .filter(entry => entry.level === level && entry.profileId)
     .forEach(entry => {
@@ -586,10 +614,10 @@ export function getLeaderboardByLevel(level: number, limit = 10): LeaderboardEnt
       }
       entriesByProfile.get(entry.profileId!)!.push(entry);
     });
-  
+
   // For each profile, get the best entry for this level
   const topEntries: LeaderboardEntry[] = [];
-  
+
   entriesByProfile.forEach((entries, profileId) => {
     // Find the best entry (highest score, then fastest time, then highest accuracy)
     const bestEntry = entries.reduce((best, current) => {
@@ -604,11 +632,11 @@ export function getLeaderboardByLevel(level: number, limit = 10): LeaderboardEnt
       }
       return best;
     });
-    
+
     // Get profile metadata and stats
     const profile = profiles.profiles.find(p => p.id === profileId);
     const profileStats = profile ? loadProfileForId(profileId) : null;
-    
+
     // Create enhanced entry with profile data
     const enhancedEntry: LeaderboardEntry = {
       ...bestEntry,
@@ -618,10 +646,10 @@ export function getLeaderboardByLevel(level: number, limit = 10): LeaderboardEnt
       totalScore: profileStats?.totalScore || 0,
       totalTime: profileStats?.totalPlayTime || 0,
     };
-    
+
     topEntries.push(enhancedEntry);
   });
-  
+
   // Sort by level time (faster is better) and accuracy (higher is better)
   topEntries.sort((a, b) => {
     if (a.levelTime !== undefined && b.levelTime !== undefined) {
@@ -633,7 +661,7 @@ export function getLeaderboardByLevel(level: number, limit = 10): LeaderboardEnt
     if (b.levelTime !== undefined) return 1;
     return b.accuracy - a.accuracy;
   });
-  
+
   return topEntries.slice(0, limit);
 }
 
@@ -740,9 +768,9 @@ export function updateStats(session: GameSession): void {
     // Use consistent rounding (round to nearest second) for accuracy
     const playTime = session.score.levelTime !== undefined
       ? Math.round(session.score.levelTime)
-      : (session.endTime && session.startTime 
-          ? Math.round((session.endTime - session.startTime) / 1000)
-          : 0);
+      : (session.endTime && session.startTime
+        ? Math.round((session.endTime - session.startTime) / 1000)
+        : 0);
 
     const isPerfectRound = session.score.accuracy >= 100;
     const wordsPerMin = playTime > 0 ? (session.score.wordsFound / playTime) * 60 : 0;
@@ -780,11 +808,11 @@ export function updateStats(session: GameSession): void {
 
   // Use levelTime from score if available, otherwise calculate from session times
   // Use consistent rounding (round to nearest second) for accuracy
-  const playTime = session.score.levelTime !== undefined 
+  const playTime = session.score.levelTime !== undefined
     ? Math.round(session.score.levelTime)
     : (session.endTime && session.startTime
-        ? Math.round((session.endTime - session.startTime) / 1000)
-        : 0);
+      ? Math.round((session.endTime - session.startTime) / 1000)
+      : 0);
 
   const newRoundsPlayed = existing.levelsCompleted + 1;
   const isPerfectRound = session.score.accuracy >= 100;
@@ -796,8 +824,8 @@ export function updateStats(session: GameSession): void {
   const existingFastest = existing.fastestRoundTime !== undefined && existing.fastestRoundTime !== Infinity
     ? existing.fastestRoundTime
     : Infinity;
-  const fastestTime = existingFastest === Infinity 
-    ? playTime 
+  const fastestTime = existingFastest === Infinity
+    ? playTime
     : Math.min(existingFastest, playTime);
 
   // Calculate average round time

@@ -6,6 +6,7 @@ import LetterGlitch, { LetterGlitchHandle } from './LetterGlitch';
 import GameHUD from './GameHUD';
 import WordList from './WordList';
 import HangmanMiniGame from './HangmanMiniGame';
+import BridgeConstructor from './BridgeConstructor';
 import GameOverModal from './GameOverModal';
 import { initializeLevel, generateWords, calculateFinalScore } from '@/lib/game/gameEngine';
 import { calculateComboMultiplier, calculateScore } from '@/lib/game/scoring';
@@ -142,8 +143,9 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
 
   // Check if hangman mini-game should be shown (every 10 levels: 10, 20, 30, 40, 50, 60, etc.)
   const shouldShowHangman = React.useMemo(() => {
-    // Show hangman only on levels that are multiples of 10 (10, 20, 30, 40, 50, 60, etc.)
-    return level >= 10 && level % 10 === 0;
+    // Show mini-game on levels that are multiples of 10 (Hangman) or 6 (Bridge Constructor)
+    // Overlap handled by render logic (Bridge takes precedence on multiples of 30)
+    return (level >= 10 && level % 10 === 0) || (level >= 6 && level % 6 === 0);
   }, [level]);
 
   // Initialize game
@@ -607,9 +609,16 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
 
     // Check if all real words are found - level complete!
     if (realWords.length > 0 && realWords.every(w => w.found) && !gameOver) {
+      // Process the completion (save stats, unlock next level, etc.)
       handleGameOver(true);
+
+      // Auto-advance to next level immediately (no modal, like normal level progression)
+      // Small delay to show the last word found animation
+      setTimeout(() => {
+        onLevelComplete(level + 1);
+      }, 500); // Just 0.5 seconds to see the completion
     }
-  }, [words, gameOver, showHangman, hangmanCompleted]);
+  }, [words, gameOver, showHangman, hangmanCompleted, level, onLevelComplete]);
 
   const handleWordFound = useCallback((word: string, isCorrectClick: boolean) => {
     if (!wordManagerRef.current) return;
@@ -1006,6 +1015,253 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
     }
   }, [notifications, currentNotification]);
 
+  const isBridgeConstructorLevel = useMemo(() => level % 6 === 0, [level]);
+
+  // Helper to get exclusion zones (re-implemented to ensure availability)
+  const getExclusionZonesLocal = () => {
+    try {
+      // Try to use the one from scope if available (it seems to be defined somewhere in the file)
+      // @ts-ignore
+      if (typeof getExclusionZones === 'function') return getExclusionZones();
+    } catch (e) { }
+
+    const width = typeof window !== 'undefined' ? window.innerWidth : 800;
+    let topExclusion = 120;
+    let bottomExclusion = 200;
+    if (width <= 360) {
+      topExclusion = 80;
+      bottomExclusion = 120;
+    } else if (width <= 480) {
+      topExclusion = 90;
+      bottomExclusion = 140;
+    } else if (width <= 768) {
+      topExclusion = 100;
+      bottomExclusion = 180;
+    }
+    return { top: topExclusion, bottom: bottomExclusion };
+  };
+
+  const handleBuildingCrossed = useCallback(() => {
+    const unrevealed = currentHangmanWords.length > 0
+      ? currentHangmanWords.filter(w => !hangmanRevealedWords.includes(w.word))
+      : words.filter(w => !w.found && !w.isFake && !hangmanRevealedWords.includes(w.word));
+
+    if (unrevealed.length > 0) {
+      const word = unrevealed[0].word;
+      setHangmanRevealedWords(prev => [...prev, word]);
+    }
+  }, [currentHangmanWords, words, hangmanRevealedWords]);
+
+  const handleMiniGameComplete = useCallback((success: boolean) => {
+    if (success) {
+      // On win, reveal all words that were in hangman and mark hangman as complete
+      // Use the stored hangman words to ensure we're revealing the correct words
+      const hangmanWordStrings = hangmanWords.length > 0
+        ? hangmanWords.map(w => w.word)
+        : words.filter(w => !w.found && !w.isFake).map(w => w.word);
+      setHangmanRevealedWords(hangmanWordStrings);
+      setHangmanCompleted(true);
+
+      // Filter words to only include hangman words (preserve found state)
+      // Make sure we only include real words (not fake words) that were in hangman
+      const hangmanWordsOnly = words.filter(w => {
+        // Only include real words (not fake)
+        if (w.isFake) return false;
+
+        // Check if word was in hangman
+        const wasInHangman = hangmanWords.length > 0
+          ? hangmanWords.some(hw => hw.word === w.word)
+          : hangmanWordStrings.includes(w.word);
+        return wasInHangman;
+      }).map(w => ({
+        ...w,
+        isVisible: true,  // Force all words to be visible
+        hidden: false,    // Ensure they're not hidden
+        clickableAt: Date.now(), // Make immediately clickable
+        clickableUntil: Date.now() + 30000 // 30 seconds to find each word
+      }));
+
+      // Ensure we have words to work with
+      if (hangmanWordsOnly.length === 0) {
+        console.warn('No hangman words found after filtering');
+        return;
+      }
+
+      // Update WordManager with only hangman words and restart word appearance system
+      if (hangmanWordsOnly.length > 0) {
+        // Get current canvas dimensions - ensure canvas is ready
+        const dimensions = glitchRef.current?.getCanvasDimensions();
+
+        if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
+          const exclusionZones = getExclusionZonesLocal();
+
+          // Get dynamic text sizing based on current palette difficulty and level
+          const currentSizing = getTextSizingForDifficulty(
+            currentPalette.difficulty,
+            level,
+            currentPalette.textSizeMultiplier
+          );
+
+          // Validate dimensions before creating WordManager
+          const canvasWidth = dimensions.width;
+          const canvasHeight = dimensions.height;
+          const charWidth = currentSizing.charWidth;
+          const charHeight = currentSizing.charHeight;
+          const topExclusionRows = Math.max(0, Math.ceil(exclusionZones.top / charHeight));
+          const bottomExclusionRows = Math.max(0, Math.ceil(exclusionZones.bottom / charHeight));
+
+          // Create new WordManager with only hangman words (already marked as visible)
+          const newWordManager = new WordManager(
+            hangmanWordsOnly,
+            canvasWidth,
+            canvasHeight,
+            topExclusionRows,
+            bottomExclusionRows,
+            level,
+            currentPalette.difficulty,
+            charWidth,
+            charHeight
+          );
+
+          // Set the new WordManager
+          wordManagerRef.current = newWordManager;
+
+          // Get updated words from WordManager
+          const updatedWords = newWordManager.updateWords();
+
+          // Set words state immediately - this triggers LetterGlitch to update
+          setWords([...updatedWords]); // Create new array to ensure React detects change
+
+          // Also set up retries to ensure words appear
+          setTimeout(() => {
+            if (wordManagerRef.current === newWordManager) {
+              let currentWords = newWordManager.updateWords();
+              const visibleCount = currentWords.filter(w => w.isVisible && !w.found).length;
+              if (visibleCount === 0 && currentWords.length > 0 && !currentWords.every(w => w.found)) {
+                newWordManager.onWordFound();
+                for (let i = 0; i < 50; i++) {
+                  if (newWordManager.forceWordAppearance()) {
+                    break;
+                  }
+                }
+                currentWords = newWordManager.updateWords();
+                setWords([...currentWords]); // Create new array
+              }
+            }
+          }, 200);
+
+          // Additional retry after longer delay
+          setTimeout(() => {
+            if (wordManagerRef.current === newWordManager) {
+              let currentWords = newWordManager.updateWords();
+              const visibleCount = currentWords.filter(w => w.isVisible && !w.found).length;
+              if (visibleCount === 0 && currentWords.length > 0 && !currentWords.every(w => w.found)) {
+                newWordManager.onWordFound();
+                for (let i = 0; i < 50; i++) {
+                  if (newWordManager.forceWordAppearance()) {
+                    break;
+                  }
+                }
+                currentWords = newWordManager.updateWords();
+                setWords([...currentWords]); // Create new array
+              }
+            }
+          }, 600);
+        } else {
+          // Canvas not ready, retry after a short delay
+          setTimeout(() => {
+            // Retry the onComplete logic
+            if (wordManagerRef.current && hangmanWordsOnly.length > 0) {
+              const retryDimensions = glitchRef.current?.getCanvasDimensions();
+              if (retryDimensions && retryDimensions.width > 0 && retryDimensions.height > 0) {
+                // Re-run the WordManager creation logic
+                // Get dynamic text sizing based on current palette difficulty and level
+                const currentSizing = getTextSizingForDifficulty(
+                  currentPalette.difficulty,
+                  level,
+                  currentPalette.textSizeMultiplier
+                );
+                const exclusionZones = getExclusionZonesLocal();
+                const charWidth = currentSizing.charWidth;
+                const charHeight = currentSizing.charHeight;
+                const topExclusionRows = Math.max(0, Math.ceil(exclusionZones.top / charHeight));
+                const bottomExclusionRows = Math.max(0, Math.ceil(exclusionZones.bottom / charHeight));
+
+                const newWordManager = new WordManager(
+                  hangmanWordsOnly,
+                  retryDimensions.width,
+                  retryDimensions.height,
+                  topExclusionRows,
+                  bottomExclusionRows,
+                  level,
+                  currentPalette.difficulty,
+                  charWidth,
+                  charHeight
+                );
+
+                wordManagerRef.current = newWordManager;
+                newWordManager.onWordFound();
+
+                for (let i = 0; i < 50; i++) {
+                  if (newWordManager.forceWordAppearance()) {
+                    break;
+                  }
+                }
+
+                const updatedWords = newWordManager.updateWords();
+                setWords([...updatedWords]);
+              } else {
+                // Still not ready, just set words (they'll be updated when canvas is ready)
+                setWords(hangmanWordsOnly);
+              }
+            }
+          }, 300);
+
+          // Set words immediately anyway (they'll be updated when canvas is ready)
+          setWords(hangmanWordsOnly);
+        }
+      } else {
+        // No words, just set empty array
+        setWords([]);
+      }
+
+      // Bonus points for completing hangman/minigame
+      setScore(prev => prev + 500);
+      setNotifications(prev => [...prev, {
+        id: `minigame-win-${Date.now()}`,
+        type: 'achievement',
+        title: isBridgeConstructorLevel ? 'Bridge Master!' : 'Hangman Master!',
+        message: '+500 bonus points! Words revealed!',
+        icon: '🎯',
+        color: '#81c784',
+        duration: 3000,
+        priority: 3,
+      }]);
+    } else {
+      // On lose, restart the level
+      setNotifications(prev => [...prev, {
+        id: `minigame-lose-${Date.now()}`,
+        type: 'achievement',
+        title: isBridgeConstructorLevel ? 'Bridge Failed' : 'Hangman Failed',
+        message: 'Level restarted! Try again.',
+        icon: '💀',
+        color: '#ef5350',
+        duration: 3000,
+        priority: 4,
+      }]);
+      // Restart level after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    }
+  }, [
+    level,
+    currentPalette,
+    hangmanWords,
+    words,
+    isBridgeConstructorLevel
+  ]);
+
   const handleNotificationDismiss = useCallback(() => {
     setCurrentNotification(null);
   }, []);
@@ -1064,236 +1320,25 @@ export default function GameScreen({ level, onMenu, onLevelComplete }: GameScree
           hangmanRevealedWords={hangmanRevealedWords}
         />
         {showHangman && !hangmanCompleted && (
-          <HangmanMiniGame
-            words={currentHangmanWords.filter(w => !w.found)}
-            palette={currentPalette}
-            onComplete={(success) => {
-              if (success) {
-                // On win, reveal all words that were in hangman and mark hangman as complete
-                // Use the stored hangman words to ensure we're revealing the correct words
-                const hangmanWordStrings = hangmanWords.length > 0
-                  ? hangmanWords.map(w => w.word)
-                  : words.filter(w => !w.found && !w.isFake).map(w => w.word);
-                setHangmanRevealedWords(hangmanWordStrings);
-                setHangmanCompleted(true);
-
-                // Filter words to only include hangman words (preserve found state)
-                // Make sure we only include real words (not fake words) that were in hangman
-                const hangmanWordsOnly = words.filter(w => {
-                  // Only include real words (not fake)
-                  if (w.isFake) return false;
-
-                  // Check if word was in hangman
-                  const wasInHangman = hangmanWords.length > 0
-                    ? hangmanWords.some(hw => hw.word === w.word)
-                    : hangmanWordStrings.includes(w.word);
-                  return wasInHangman;
-                });
-
-                // Ensure we have words to work with
-                if (hangmanWordsOnly.length === 0) {
-                  console.warn('No hangman words found after filtering');
-                  return;
-                }
-
-                // Update WordManager with only hangman words and restart word appearance system
-                if (hangmanWordsOnly.length > 0) {
-                  // Get current canvas dimensions - ensure canvas is ready
-                  const dimensions = glitchRef.current?.getCanvasDimensions();
-
-                  if (dimensions && dimensions.width > 0 && dimensions.height > 0) {
-                    const exclusionZones = getExclusionZones();
-
-                    // Get dynamic text sizing based on current palette difficulty and level
-                    const currentSizing = getTextSizingForDifficulty(
-                      currentPalette.difficulty,
-                      level,
-                      currentPalette.textSizeMultiplier
-                    );
-
-                    // Validate dimensions before creating WordManager
-                    const canvasWidth = dimensions.width;
-                    const canvasHeight = dimensions.height;
-                    const charWidth = currentSizing.charWidth;
-                    const charHeight = currentSizing.charHeight;
-                    const topExclusionRows = Math.max(0, Math.ceil(exclusionZones.top / charHeight));
-                    const bottomExclusionRows = Math.max(0, Math.ceil(exclusionZones.bottom / charHeight));
-
-                    // Create new WordManager with only hangman words
-                    // This resets word visibility states, so we need to force appearance immediately
-                    const newWordManager = new WordManager(
-                      hangmanWordsOnly,
-                      canvasWidth,
-                      canvasHeight,
-                      topExclusionRows,
-                      bottomExclusionRows,
-                      level,
-                      currentPalette.difficulty,
-                      charWidth,
-                      charHeight
-                    );
-
-                    // Set the new WordManager
-                    wordManagerRef.current = newWordManager;
-
-                    // Reset WordManager's internal state to encourage immediate word appearance
-                    newWordManager.onWordFound(); // Clear scheduled appearances
-
-                    // Force first word to appear immediately - try many times
-                    let wordAppeared = false;
-                    for (let i = 0; i < 50; i++) {
-                      if (newWordManager.forceWordAppearance()) {
-                        wordAppeared = true;
-                        break;
-                      }
-                    }
-
-                    // Update words - this will include the forced word if successful
-                    let updatedWords = newWordManager.updateWords();
-
-                    // If still no word appeared, try one more aggressive attempt
-                    if (!wordAppeared || updatedWords.filter(w => w.isVisible && !w.found).length === 0) {
-                      // Reset and try again
-                      newWordManager.onWordFound();
-                      for (let i = 0; i < 100; i++) {
-                        if (newWordManager.forceWordAppearance()) {
-                          break;
-                        }
-                      }
-                      updatedWords = newWordManager.updateWords();
-                    }
-
-                    // Set words state immediately - this triggers LetterGlitch to update
-                    setWords([...updatedWords]); // Create new array to ensure React detects change
-
-                    // Also set up retries to ensure words appear
-                    setTimeout(() => {
-                      if (wordManagerRef.current === newWordManager) {
-                        let currentWords = newWordManager.updateWords();
-                        const visibleCount = currentWords.filter(w => w.isVisible && !w.found).length;
-                        if (visibleCount === 0 && currentWords.length > 0 && !currentWords.every(w => w.found)) {
-                          newWordManager.onWordFound();
-                          for (let i = 0; i < 50; i++) {
-                            if (newWordManager.forceWordAppearance()) {
-                              break;
-                            }
-                          }
-                          currentWords = newWordManager.updateWords();
-                          setWords([...currentWords]); // Create new array
-                        }
-                      }
-                    }, 200);
-
-                    // Additional retry after longer delay
-                    setTimeout(() => {
-                      if (wordManagerRef.current === newWordManager) {
-                        let currentWords = newWordManager.updateWords();
-                        const visibleCount = currentWords.filter(w => w.isVisible && !w.found).length;
-                        if (visibleCount === 0 && currentWords.length > 0 && !currentWords.every(w => w.found)) {
-                          newWordManager.onWordFound();
-                          for (let i = 0; i < 50; i++) {
-                            if (newWordManager.forceWordAppearance()) {
-                              break;
-                            }
-                          }
-                          currentWords = newWordManager.updateWords();
-                          setWords([...currentWords]); // Create new array
-                        }
-                      }
-                    }, 600);
-                  } else {
-                    // Canvas not ready, retry after a short delay
-                    setTimeout(() => {
-                      // Retry the onComplete logic
-                      if (wordManagerRef.current && hangmanWordsOnly.length > 0) {
-                        const retryDimensions = glitchRef.current?.getCanvasDimensions();
-                        if (retryDimensions && retryDimensions.width > 0 && retryDimensions.height > 0) {
-                          // Re-run the WordManager creation logic
-                          // Get dynamic text sizing based on current palette difficulty and level
-                          const currentSizing = getTextSizingForDifficulty(
-                            currentPalette.difficulty,
-                            level,
-                            currentPalette.textSizeMultiplier
-                          );
-                          const exclusionZones = getExclusionZones();
-                          const charWidth = currentSizing.charWidth;
-                          const charHeight = currentSizing.charHeight;
-                          const topExclusionRows = Math.max(0, Math.ceil(exclusionZones.top / charHeight));
-                          const bottomExclusionRows = Math.max(0, Math.ceil(exclusionZones.bottom / charHeight));
-
-                          const newWordManager = new WordManager(
-                            hangmanWordsOnly,
-                            retryDimensions.width,
-                            retryDimensions.height,
-                            topExclusionRows,
-                            bottomExclusionRows,
-                            level,
-                            currentPalette.difficulty,
-                            charWidth,
-                            charHeight
-                          );
-
-                          wordManagerRef.current = newWordManager;
-                          newWordManager.onWordFound();
-
-                          for (let i = 0; i < 50; i++) {
-                            if (newWordManager.forceWordAppearance()) {
-                              break;
-                            }
-                          }
-
-                          const updatedWords = newWordManager.updateWords();
-                          setWords([...updatedWords]);
-                        } else {
-                          // Still not ready, just set words (they'll be updated when canvas is ready)
-                          setWords(hangmanWordsOnly);
-                        }
-                      }
-                    }, 300);
-
-                    // Set words immediately anyway (they'll be updated when canvas is ready)
-                    setWords(hangmanWordsOnly);
-                  }
-                } else {
-                  // No words, just set empty array
-                  setWords([]);
-                }
-
-                // Bonus points for completing hangman
-                setScore(prev => prev + 500);
-                setNotifications(prev => [...prev, {
-                  id: `hangman-win-${Date.now()}`,
-                  type: 'achievement',
-                  title: 'Hangman Master!',
-                  message: '+500 bonus points! Words revealed!',
-                  icon: '🎯',
-                  color: '#81c784',
-                  duration: 3000,
-                  priority: 3,
-                }]);
-              } else {
-                // On lose, restart the level
-                setNotifications(prev => [...prev, {
-                  id: `hangman-lose-${Date.now()}`,
-                  type: 'achievement',
-                  title: 'Hangman Failed',
-                  message: 'Level restarted! Try again.',
-                  icon: '💀',
-                  color: '#ef5350',
-                  duration: 3000,
-                  priority: 4,
-                }]);
-                // Restart level after a short delay
-                setTimeout(() => {
-                  window.location.reload();
-                }, 2000);
-              }
-            }}
-            onWordsRevealed={(revealedWords) => {
-              // Track which words are fully revealed
-              setHangmanRevealedWords(revealedWords);
-            }}
-          />
+          isBridgeConstructorLevel ? (
+            <BridgeConstructor
+              level={level}
+              requiredBuildings={hangmanWords.length > 0 ? hangmanWords.length : currentHangmanWords.length}
+              currentPalette={currentPalette}
+              onComplete={() => handleMiniGameComplete(true)}
+              onBuildingCrossed={handleBuildingCrossed}
+            />
+          ) : (
+            <HangmanMiniGame
+              words={currentHangmanWords.filter(w => !w.found)}
+              palette={currentPalette}
+              onComplete={handleMiniGameComplete}
+              onWordsRevealed={(revealedWords) => {
+                // Track which words are fully revealed
+                setHangmanRevealedWords(revealedWords);
+              }}
+            />
+          )
         )}
       </div>
       {gameOver && finalScore && (
